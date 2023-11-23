@@ -1,2 +1,3 @@
 *.json
 /server/node_modules
+/server/user
