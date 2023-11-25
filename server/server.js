@@ -4,6 +4,8 @@ const storage = require('node-storage');
 const app = express();
 const bcrypt = require('bcrypt');
 const validator = require('validator');
+const superheroInfo = require('./superhero_info.json');
+const superheroPowers = require('./superhero_powers.json');
 
 app.use(express.json());
 app.use(cors());
@@ -62,9 +64,76 @@ userRouter.post('/create/:email/:username/:password/:nickname', (req, res) => {
 
         userStore.put(email, newUser);
 
-        console.log(`New user created:`, newUser);
+        res.json({ message: 'User created successfully. Check your email for verification.' });
     });
 });
+
+userRouter.post('/add-list/:email/:listName/:description?/:visibility?/:ids', (req, res) => {
+    const { email, listName, description, visibility } = req.params;
+    
+
+    // Check if the user exists
+    const user = userStore.get(email);
+    if (!user) {
+        return res.status(404).json({ message: `User with email ${email} not found.` });
+    }
+
+    // Check if the user already has 20 lists
+    if (user.superheroLists.length >= 20) {
+        return res.status(400).json({ message: `User has reached the maximum limit of 20 lists.` });
+    }
+
+    // Check if the list name is unique
+    const isListNameUnique = user.superheroLists.every(list => list.listName !== listName);
+    if (!isListNameUnique) {
+        return res.status(400).json({ message: `List name ${listName} already exists for this user.` });
+    }
+
+    // Create a superhero list object
+    const newList = {
+        listName,
+        description: description || '', 
+        visibility: visibility || 'private', 
+        heroes: [],
+        reviews: [],
+    };
+
+    // Add the new list to the user's superheroLists array
+    user.superheroLists.push(newList);
+
+    //update user object
+    userStore.put(email, user);
+
+    console.log(`New superhero list added to ${email}:`, newList);
+
+    res.json({ message: 'Superhero list added successfully.' });
+});
+
+userRouter.post("/delete-list/:email/:listName", (req, res) => {
+    const { email, listName } = req.params;
+
+    // Check if the user exists
+    const user = userStore.get(email);
+    if (!user) {
+        return res.status(404).json({ message: `User with email ${email} not found.` });
+    }
+
+    // Find the index of the list with a case-insensitive comparison
+    const index = user.superheroLists.findIndex(list => list.listName.toLowerCase() === listName.toLowerCase());
+
+    if (index === -1) {
+        return res.status(400).json({ message: `List name ${listName} doesn't exist.` });
+    }
+
+    // Remove the list at the specified index
+    user.superheroLists.splice(index, 1);
+
+    userStore.put(email, user);
+
+    res.json({ message: `List "${listName}" deleted successfully.` });
+});
+
+
 
 
 
