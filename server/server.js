@@ -21,6 +21,14 @@ app.use((req, res, next) => {
     next();
 });
 
+// Iterate through superheroInfo and add powers to corresponding superheroes
+superheroInfo.forEach(superhero => {
+    const powers = superheroPowers.find(power => power.hero_names === superhero.name);
+    if (powers) {
+        superhero.Powers = Object.keys(powers).filter(power => powers[power] === 'True');
+    }
+});
+
 userRouter.post('/delete/:email', (req, res) => {
     const email = req.params.email;
     if (userStore.get(email) === null || userStore.get(email) === undefined) {
@@ -64,13 +72,17 @@ userRouter.post('/create/:email/:username/:password/:nickname', (req, res) => {
 
         userStore.put(email, newUser);
 
+        console.log(`New user created:`, newUser);
+
+        console.log(`Verification email sent to: ${email}`);
+
         res.json({ message: 'User created successfully. Check your email for verification.' });
     });
 });
 
 userRouter.post('/add-list/:email/:listName/:description?/:visibility?/:ids', (req, res) => {
     const { email, listName, description, visibility } = req.params;
-    
+    const ids = req.params.ids.split(',').map(id => parseInt(id));
 
     // Check if the user exists
     const user = userStore.get(email);
@@ -92,22 +104,41 @@ userRouter.post('/add-list/:email/:listName/:description?/:visibility?/:ids', (r
     // Create a superhero list object
     const newList = {
         listName,
-        description: description || '', 
-        visibility: visibility || 'private', 
+        description: description || '',
+        visibility: visibility || 'private',
         heroes: [],
         reviews: [],
     };
 
-    // Add the new list to the user's superheroLists array
-    user.superheroLists.push(newList);
+    // Add superheroes to the list
+    let heroNotFoundFlag = false;
+    for (const id of ids) {
+        const hero = superheroInfo.find(h => h.id === id);
 
-    //update user object
-    userStore.put(email, user);
+        if (hero) {
+            // Add the hero to the list
+            newList.heroes.push(hero);
+        } else {
+            console.log(`Hero ${id} was not found!`);
+            res.status(404).json({ message: `Hero ${id} was not found!` });
+            heroNotFoundFlag = true;
+            break;
+        }
+    }
 
-    console.log(`New superhero list added to ${email}:`, newList);
+    if (!heroNotFoundFlag) {
+        // Add the new list to the user's superheroLists array
+        user.superheroLists.push(newList);
 
-    res.json({ message: 'Superhero list added successfully.' });
+        // Update the user object
+        userStore.put(email, user);
+
+        console.log(`New superhero list added to ${email}:`, newList);
+
+        res.json({ message: 'Superhero list added successfully.' });
+    }
 });
+
 
 userRouter.post("/delete-list/:email/:listName", (req, res) => {
     const { email, listName } = req.params;
@@ -132,11 +163,6 @@ userRouter.post("/delete-list/:email/:listName", (req, res) => {
 
     res.json({ message: `List "${listName}" deleted successfully.` });
 });
-
-
-
-
-
 
 
 app.get("/message", (req, res) => {
