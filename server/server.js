@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const storage = require('node-storage');
 const app = express();
-const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const validator = require('validator');
 const superheroInfo = require('./superhero_info.json');
 const superheroPowers = require('./superhero_powers.json');
@@ -52,32 +52,31 @@ userRouter.post('/create/:email/:username/:password/:nickname', (req, res) => {
         return res.status(400).json({ message: `Email ${email} already exists.` });
     }
 
-    // Hash the password
-    bcrypt.hash(password, 10, (err, hashedPassword) => {
-        if (err) {
-            console.error('Error hashing password:', err);
-            return res.status(500).json({ message: 'Internal Server Error' });
-        }
+    // Generate a random salt
+    const salt = crypto.randomBytes(16).toString('hex');
 
-        // Create a user object
-        const newUser = {
-            email,
-            username,
-            password: hashedPassword,
-            nickname,
-            verified: false,
-            disabled: false,
-            superheroLists: [],
-        };
+    // Hash the password using the salt
+    const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
 
-        userStore.put(email, newUser);
+    const newUser = {
+        email,
+        username,
+        password: hashedPassword,
+        salt,
+        nickname,
+        verified: false,
+        disabled: false,
+        superheroLists: [],
+    };
 
-        console.log(`New user created:`, newUser);
+    userStore.put(email, newUser);
 
-        console.log(`Verification email sent to: ${email}`);
+    console.log(`New user created:`, newUser);
 
-        res.json({ message: 'User created successfully. Check your email for verification.' });
-    });
+    console.log(`Verification email sent to: ${email}`);
+
+    res.json({ message: 'User created successfully. Check your email for verification.' });
+
 });
 
 userRouter.post('/add-list/:email/:listName/:description?/:visibility?/:ids', (req, res) => {
