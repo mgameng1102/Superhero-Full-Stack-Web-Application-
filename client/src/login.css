@@ -1,0 +1,47 @@
+.auth-form-contatiner, .login-form, .register-form, .register-form-container{
+    display: flex;
+    flex-direction: column;
+  
+  }
+  
+  
+  .auth-form-container, .register-form-container{
+    padding: 5rem;
+    border: 1px solid white;
+    border-radius: 50px;
+  
+  }
+  
+  label{
+    text-align: left;
+    padding: 0.25rem 0;
+    text-decoration: underline;
+  }
+  
+  input {
+    margin: 0.5rem 0;
+    padding:1rem;
+    border: none;
+    border-radius: 10px;
+  }
+  
+  button{
+    border: none;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    
+  }
+  .login-btn:hover, .register-btn:hover{
+    background-color: rgba(33,150,255,1) ;
+  }
+  
+
+  .link-btn{
+    background: none;
+    color: rgb(255, 255, 255);
+    text-decoration: underline;
+    
+  }
+  
+  
