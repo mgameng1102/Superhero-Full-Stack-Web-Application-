@@ -7,6 +7,15 @@ const validator = require('validator');
 const superheroInfo = require('./superhero_info.json');
 const superheroPowers = require('./superhero_powers.json');
 
+
+// var passport = require('passport');
+// var LocalStrategy = require('passport-local');
+// app.use(passport.initialize());
+// app.use(passport.session());
+
+
+
+
 app.use(express.json());
 app.use(cors());
 
@@ -15,6 +24,34 @@ app.use('/api/users', userRouter);
 
 // Create or load the storage for user data
 const userStore = new storage('./user');
+
+// passport.use(new LocalStrategy(function verify(username, password, cb) {
+//     const user = Object.values(userStore.storage).find(user => user.username === username);
+
+//     if (!user) {
+//         return cb(null, false, { message: 'Incorrect username or password.' });
+//     }
+
+//     crypto.pbkdf2(password, user.salt, 310000, 32, 'sha256', function (err, hashedPassword) {
+//         if (err) {
+//             return cb(err);
+//         }
+//         if (!crypto.timingSafeEqual(Buffer.from(user.password, 'hex'), hashedPassword)) {
+//             return cb(null, false, { message: 'Incorrect username or password.' });
+//         }
+//         return cb(null, user);
+//     });
+// }));
+
+// app.get('/login', function(req, res, next) {
+//     res.render('login');
+//   });
+
+// app.post('/login/password', passport.authenticate('local', {
+//     successRedirect: '/',
+//     failureRedirect: '/login'
+//   }));
+
 
 app.use((req, res, next) => {
     console.log(`${req.method} request for ${req.url}`);
@@ -50,6 +87,10 @@ userRouter.post('/create/:email/:username/:password/:nickname', (req, res) => {
     // Check if the email already exists in your in-memory storage
     if (userStore.get(email) !== undefined) {
         return res.status(400).json({ message: `Email ${email} already exists.` });
+    }
+
+    if (userStore.get(username) !== undefined) {
+        return res.status(400).json({ message: `Username ${username} already exists.` });
     }
 
     // Generate a random salt

@@ -1,17 +1,35 @@
 import React, {useState} from "react";
+import axios from  'axios';
+
 export const Register = (props) => {
     const[username, setUsername] = useState('');
     const[password, setPass]= useState('');
     const[email, setEmail]=useState('');
     const[nickname, setNick] = useState('');
+    const [errorMessage, setErrorMessage] = useState(null);
 
 
 
 
-    const handleSubmit = (e) =>{
+    const handleSubmit = (e) => {
         e.preventDefault();
-        console.log(username);
+        if (!username || !password || !email || !nickname) {
+            setErrorMessage("All fields are required");
+            return;
+          }
+        // Call your server's create route here
+        axios.post(`http://localhost:8000/api/users/create/${email}/${username}/${password}/${nickname}`)
+            .then(response => {
+                console.log(response.data.message);
+                // You can handle success, e.g., redirect to login page
+            })
+            .catch(error => {
+                console.error(error.response.data.message);
+                // You can handle errors here
+                setErrorMessage(error.response.data.message);
+            });
     }
+
     return (
         <div className="register-form-container">
             <h2>Register</h2>
@@ -27,8 +45,9 @@ export const Register = (props) => {
 
                 <label for = "email"> Email</label>
                 <input value = {email} onChange= {(e)=> setEmail(e.target.value)} type="email" placeholder="Email" id="email" name = "email"/>
+                {errorMessage && <p className="error-message">{errorMessage}</p>}
             </form>
-            <button className = "register-btn" onClick={() => props.onFormSwitch('login')}>Create Account</button>
+            <button className = "register-btn" onClick={handleSubmit}>Create Account</button>
         </div>
     )
     
