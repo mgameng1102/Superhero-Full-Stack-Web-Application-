@@ -4,7 +4,7 @@ const User = require('./user'); // Adjust the path as needed
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const validator = require('validator');
 const superheroInfo = require('./superhero_info.json');
 const superheroPowers = require('./superhero_powers.json');
@@ -15,7 +15,7 @@ const userRouter = express.Router();
 const session = require('express-session');
 
 
-
+//Mongoose Connection
 mongoose.connect("mongodb+srv://markgameng2:mark1102@cluster0.okwqgu4.mongodb.net/<database>", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -44,26 +44,45 @@ app.use((req, res, next) => {
     next();
 });
 
-passport.use(new LocalStrategy({ usernameField: 'email' }, function verify(email, password, cb) {
-    console.log(`Attempting authentication for email: ${email} and password: ${password}`);
 
-    const users = userStore.get('users') || {}; // Retrieve users object from storage or initialize an empty object
-    const user = Object.values(users).find(u => u && u.email === email);
-
-    if (!user) {
+//Email and Password authentication
+passport.use(new LocalStrategy({ usernameField: 'email' }, async function verify(email, password, cb) {
+    console.log(`${email} and ${password}`);
+    try {
+      // Find user by email in MongoDB
+      const user = await User.findOne({ email });
+  
+      if (!user) {
         return cb(null, false, { message: 'Incorrect email or password.' });
+      }
+  
+      // Compare hashed password using bcrypt.compare
+      const passwordMatch = await bcrypt.compare(password, user.password);
+  
+      if (!passwordMatch) {
+        console.log('Hashed passwords do not match:');
+        console.log('Stored Password:', user.password);
+        console.log('Entered Password:', password);
+        return cb(null, false, { message: 'Incorrect email or password.' });
+      }
+  
+      return cb(null, user, {message: 'Valid User'});
+    } catch (error) {
+      console.error(error);
+      return cb(error);
     }
+  }));
 
-    crypto.pbkdf2(password, user.ca.salt, 310000, 32, 'sha256', function (err, hashedPassword) {
-        if (err) {
-            return cb(err);
-        }
-        if (!crypto.timingSafeEqual(Buffer.from(user.ca.password, 'hex'), hashedPassword)) {
-            return cb(null, false, { message: 'Incorrect email or password.' });
-        }
-        return cb(null, user);
+  passport.serializeUser((user, done) => {
+    done(null, user._id.toString());
+  });
+  
+  passport.deserializeUser((id, done) => {
+    User.findById(id, (err, user) => {
+      done(err, user);
     });
-}));
+  });
+  
 
 
 app.post('/login/password', (req, res, next) => {
@@ -97,62 +116,84 @@ superheroInfo.forEach(superhero => {
     }
 });
 
-userRouter.post('/delete/:email', (req, res) => {
+userRouter.post('/delete/:email', async (req, res) => {
     const email = req.params.email;
-    if (userStore.get(email) === null || userStore.get(email) === undefined) {
-        return res.status(400).json({ message: `List ${listName} does not exist!` });
-    }
-
-    userStore.remove(email);
-    res.json({ message: `Email "${email}" deleted successfully.` });
-});
-
-userRouter.post('/create/:email/:username/:password/:nickname', async (req, res) => {
-    const { email, username, password, nickname } = req.params;
-
-    // Input validation for email
-    if (!validator.isEmail(email)) {
-        return res.status(400).json({ message: 'Invalid email format.' });
-    }
 
     try {
-        // Check if the email already exists in MongoDB
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: `Email ${email} already exists.` });
+        // Check if the user exists in MongoDB
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(400).json({ message: `User with email ${email} does not exist!` });
         }
 
-        // Generate a random salt
-        const salt = crypto.randomBytes(16).toString('hex');
+        // Remove the user from MongoDB
+        await User.deleteOne({ email });
 
-        // Hash the password using the salt
-        const hashedPassword = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-
-        // Create a new user using the User model
-        const newUser = new User({
-            email,
-            username,
-            password: hashedPassword,
-            nickname,
-            salt,
-            verified: false,
-            disabled: false,
-            superheroLists: [],
-        });
-
-        // Save the user to MongoDB
-        await newUser.save();
-
-        console.log(`New user created:`, newUser);
-
-        console.log(`Verification email sent to: ${email}`);
-
-        res.json({ message: 'User created successfully. Check your email for verification.' });
+        res.json({ message: `Email "${email}" deleted successfully.` });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 });
+
+userRouter.post('/create/:email/:username/:password/:nickname', async (req, res) => {
+    const { email, username, password, nickname } = req.params;
+  
+    // Input validation for email
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ message: 'Invalid email format.' });
+    }
+  
+    try {
+      // Check if the email already exists in MongoDB
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: `Email ${email} already exists.` });
+      }
+  
+      const existingUsername = await User.findOne({ username });
+      if (existingUsername) {
+        return res.status(400).json({ message: `Username ${username} already exists.` });
+      }
+  
+      const existingNickname = await User.findOne({ nickname });
+      if (existingNickname) {
+        return res.status(400).json({ message: `Nickname ${nickname} already exists.` });
+      }
+  
+      // Generate a random salt
+      const salt = await bcrypt.genSalt(10);
+  
+      // Hash the password using bcrypt
+      const hashedPassword = await bcrypt.hash(password, salt);
+  
+      // Create a new user using the User model
+      const newUser = new User({
+        email,
+        username,
+        password: hashedPassword,
+        salt, // Store the salt in the user document
+        nickname,
+        verified: false,
+        disabled: false,
+        superheroLists: [],
+      });
+  
+      // Save the user to MongoDB
+      await newUser.save();
+  
+      console.log('New user created:', newUser);
+  
+      console.log(`Verification email sent to: ${email}`);
+  
+      res.json({ message: 'User created successfully. Check your email for verification.' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  });
+  
 
 
 // userRouter.post('/add-list/:email/:listName/:description?/:visibility?/:ids', (req, res) => {
