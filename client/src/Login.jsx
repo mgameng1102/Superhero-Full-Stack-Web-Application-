@@ -27,7 +27,7 @@ export const Login = (props) => {
     
 
     return (
-        <div className="auth-form-container">
+        <div className="front-form-container">
             <h2>Login</h2>
             <form className="login-form" >
                 <label for = "email"> Email</label>
@@ -40,6 +40,7 @@ export const Login = (props) => {
             </form>
             <button onClick={handleSubmit} className="login-btn" type="login">Log in</button>
             <button className = "link-btn" onClick={() => props.onFormSwitch('register')} > Don't have an account? Register here</button>
+            <button className = "link-btn" onClick={() => props.onFormSwitch('update')} > Forgot Password? Update here</button>
         </div>
     )
     

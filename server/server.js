@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const User = require('./user'); // Adjust the path as needed
-
 const express = require("express");
 const cors = require("cors");
 const app = express();
@@ -193,6 +192,52 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
       res.status(500).json({ message: 'Internal Server Error' });
     }
   });
+
+
+  userRouter.post('/updatePass/:email/:newPass/:confPass', async (req, res) => {
+        const {email, newPass, confPass} = req.params;
+
+        try{
+            const existingUser = await User.findOne({ email });
+           
+            if (!existingUser) {
+                return res.status(400).json({ message: `User does not exist.` });
+            }
+
+            if (newPass !== confPass) {
+                return res.status(400).json({ message: 'New password and confirm password do not match.' });
+            }
+
+             // Generate a new salt and hash the new password
+            const newSalt = await bcrypt.genSalt(10);
+            const newHashedPassword = await bcrypt.hash(newPass, newSalt);
+
+            const newPasswordMatch = await bcrypt.compare(newPass, existingUser.password);
+
+            if (newPasswordMatch) {
+                return res.status(400).json({ message: 'New password cannot be the same as the current password.' });
+            }
+
+
+
+            // Update the user's password and salt in MongoDB
+            existingUser.password = newHashedPassword;
+            existingUser.salt = newSalt;
+
+            // Save the updated user
+            await existingUser.save();
+
+            res.json({ message: 'Password updated successfully.' });
+
+
+
+        } catch(error){
+            console.error(error);
+            res.status(500).json({ message: 'Internal Server Error' });
+
+        }
+  });
+
   
 
 

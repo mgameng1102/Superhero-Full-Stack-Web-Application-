@@ -31,7 +31,7 @@ export const Register = (props) => {
     }
 
     return (
-        <div className="register-form-container">
+        <div className="front-form-container">
             <h2>Register</h2>
             <form className="register-form" onLogin={handleSubmit}>
                 <label for = "username"> Username</label>
@@ -47,7 +47,9 @@ export const Register = (props) => {
                 <input value = {email} onChange= {(e)=> setEmail(e.target.value)} type="email" placeholder="Email" id="email" name = "email"/>
                 {errorMessage && <p className="error-message">{errorMessage}</p>}
             </form>
+            <button className = "register-btn" onClick={() => props.onFormSwitch('login')}>Login</button>
             <button className = "register-btn" onClick={handleSubmit}>Create Account</button>
+
         </div>
     )
     
