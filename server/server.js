@@ -8,6 +8,9 @@ const validator = require('validator');
 const superheroInfo = require('./superhero_info.json');
 const superheroPowers = require('./superhero_powers.json');
 
+const { check, validationResult } = require('express-validator');
+
+
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 const userRouter = express.Router();
@@ -244,8 +247,6 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
                 return res.status(400).json({ message: 'New password cannot be the same as the current password.' });
             }
 
-
-
             // Update the user's password and salt in MongoDB
             existingUser.password = newHashedPassword;
             existingUser.salt = newSalt;
@@ -264,67 +265,164 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
         }
   });
 
+
   
+  userRouter.post('/add-list/:email/:listName/:description?/:visibility?/:ids', async (req, res) => {
+    const { email, listName, description, visibility } = req.params;
+    const ids = req.params.ids.split(',').map(id => parseInt(id));
+
+    try {
+        // Find the user by email in MongoDB
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ message: `User with email ${email} not found.` });
+        }
+
+        // Check if the user already has 20 lists
+        if (user.superheroLists.length >= 20) {
+            return res.status(400).json({ message: `User has reached the maximum limit of 20 lists.` });
+        }
+
+        // Check if the list name is unique
+        const isListNameUnique = user.superheroLists.every(list => list.listName !== listName);
+        if (!isListNameUnique) {
+            return res.status(400).json({ message: `List name ${listName} already exists for this user.` });
+        }
+
+        // Create a superhero list object with lastModified property
+        const newList = {
+            listName,
+            description: description || '',
+            visibility: visibility || 'private',
+            heroes: [],
+            reviews: [],
+            lastModified: new Date(), // Adding lastModified property with the current date and time
+        };
+
+        // Add superheroes to the list
+        let heroNotFoundFlag = false;
+        for (const id of ids) {
+            const hero = superheroInfo.find(h => h.id === id);
+
+            if (hero) {
+                // Add the hero to the list
+                newList.heroes.push(hero);
+            } else {
+                console.log(`Hero ${id} was not found!`);
+                res.status(404).json({ message: `Hero ${id} was not found!` });
+                heroNotFoundFlag = true;
+                break;
+            }
+        }
+
+        if (!heroNotFoundFlag) {
+            // Add the new list to the user's superheroLists array
+            user.superheroLists.push(newList);
+
+            await user.save();
+
+            console.log(`New superhero list added to ${email}:`, newList);
+
+            res.json({ message: 'Superhero list added successfully.' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
+
+userRouter.post('/edit-list/:email/:listName', async (req, res) => {
+  const { email, listName } = req.params;
+  const { newListName, newDescription, newVisibility, newIds } = req.query;
+  const newHeroIds = newIds ? newIds.split(',').map(id => parseInt(id)) : [];
+
+  console.log(`${newListName}, ${newDescription}, ${newVisibility}, ${newIds}`)
+  try {
+    // Find the user by email in MongoDB
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: `User with email ${email} not found.` });
+    }
+
+    // Find the index of the list by name
+    const listIndex = user.superheroLists.findIndex(list => list.listName === listName);
+
+    if (listIndex === -1) {
+      return res.status(404).json({ message: `List with name ${listName} not found for this user.` });
+    }
+
+    // Update aspects of the existing list
+    const editedList = user.superheroLists[listIndex];
+
+    // Update list properties if provided
+    if (newListName !== undefined) {
+      editedList.listName = newListName;
+    }
+
+    if (newDescription !== undefined) {
+      editedList.description = newDescription;
+    }
+
+    if (newVisibility !== undefined) {
+      editedList.visibility = newVisibility;
+    }
+    editedList.heroes = [];
 
 
-// userRouter.post('/add-list/:email/:listName/:description?/:visibility?/:ids', (req, res) => {
-//     const { email, listName, description, visibility } = req.params;
-//     const ids = req.params.ids.split(',').map(id => parseInt(id));
+    // Add new heroes to the list
+    let heroNotFoundFlag = false;
+    for (const id of newHeroIds) {
+      const hero = superheroInfo.find(h => h.id === id);
 
-//     // Check if the user exists
-//     const user = userStore.get(email);
-//     if (!user) {
-//         return res.status(404).json({ message: `User with email ${email} not found.` });
-//     }
+      if (hero) {
+        // Add the hero to the list
+        editedList.heroes.push(hero);
+      } else {
+        console.log(`Hero ${id} was not found!`);
+        res.status(404).json({ message: `Hero ${id} was not found!` });
+        heroNotFoundFlag = true;
+        break;
+      }
+    }
 
-//     // Check if the user already has 20 lists
-//     if (user.superheroLists.length >= 20) {
-//         return res.status(400).json({ message: `User has reached the maximum limit of 20 lists.` });
-//     }
+    if (!heroNotFoundFlag) {
+      // Update last edited time
+      editedList.lastModified = new Date();
 
-//     // Check if the list name is unique
-//     const isListNameUnique = user.superheroLists.every(list => list.listName !== listName);
-//     if (!isListNameUnique) {
-//         return res.status(400).json({ message: `List name ${listName} already exists for this user.` });
-//     }
+      // Update the user object
+      user.superheroLists[listIndex] = editedList;
 
-//     // Create a superhero list object
-//     const newList = {
-//         listName,
-//         description: description || '',
-//         visibility: visibility || 'private',
-//         heroes: [],
-//         reviews: [],
-//     };
+      await user.save();
 
-//     // Add superheroes to the list
-//     let heroNotFoundFlag = false;
-//     for (const id of ids) {
-//         const hero = superheroInfo.find(h => h.id === id);
+      console.log(`List ${listName} edited successfully. Last edited time: ${editedList.lastModified}`);
 
-//         if (hero) {
-//             // Add the hero to the list
-//             newList.heroes.push(hero);
-//         } else {
-//             console.log(`Hero ${id} was not found!`);
-//             res.status(404).json({ message: `Hero ${id} was not found!` });
-//             heroNotFoundFlag = true;
-//             break;
-//         }
-//     }
+      res.json({ message: 'List edited successfully.', editedList });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 
-//     if (!heroNotFoundFlag) {
-//         // Add the new list to the user's superheroLists array
-//         user.superheroLists.push(newList);
+// const validateRating = check('rating').isInt({ min: 1, max: 10 }).withMessage('Rating must be an integer between 1 and 5');
 
-//         // Update the user object
-//         userStore.put(email, user);
+// userRouter.post("/add-review/:username/:listName/:rating/:comment?" ,(req,res) =>{
+//     const { username, listName, rating, comment } = req.params;
 
-//         console.log(`New superhero list added to ${email}:`, newList);
+//     try{
+//       const errors = validationResult(req);
+//       if (!errors.isEmpty()) {
+//         return res.status(400).json({ errors: errors.array() });
+//       }
 
-//         res.json({ message: 'Superhero list added successfully.' });
+//     }catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: 'Internal Server Error' });
 //     }
 // });
+
 
 
 // userRouter.post("/delete-list/:email/:listName", (req, res) => {
