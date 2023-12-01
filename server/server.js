@@ -402,9 +402,58 @@ userRouter.post('/edit-list/:email/:listName', async (req, res) => {
     }
   } catch (error) {
     console.error(error);
+    res.status(500).json({ message:  'Internal Server Error' });
+  }
+});
+
+
+app.get("/view-lists/:username" ,async (req,res) =>{
+  const {username} = req.params;
+
+  try{
+    const user = await User.findOne({username});
+
+    if(!user){
+      return res.status(400).json({message: `User ${username} doesn't exist`});
+    }
+
+    const superheroLists = user.superheroLists;
+
+    res.json(superheroLists);
+  }catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+app.get("/public-lists", async (req, res) => {
+  try {
+    // Find public superhero lists (limit to 10) and sort by last modified date
+    const publicLists = await User.aggregate([
+      { $unwind: "$superheroLists" },  // Unwind the superheroLists array
+      { $match: { "superheroLists.visibility": "public" } },  // Match only public lists
+      { $sort: { "superheroLists.lastModified": -1 } },  // Sort by last modified date (descending order)
+      { $limit: 10 },  // Limit the result to 10 lists
+      {
+        $project: {
+          _id: 0,  // Exclude _id from the result
+          listName: "$superheroLists.listName",
+          creatorNickname: "$nickname",
+          numberOfHeroes: { $size: "$superheroLists.heroes" },  // Calculate the number of heroes in the list
+          averageRating: { $avg: "$superheroLists.reviews.rating" },  // Calculate the average rating
+          lastModified: "$superheroLists.lastModified"
+        }
+      }
+    ]);
+
+    res.json({ publicLists });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+
 
 // const validateRating = check('rating').isInt({ min: 1, max: 10 }).withMessage('Rating must be an integer between 1 and 5');
 
