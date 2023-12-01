@@ -20,7 +20,7 @@ export const Register = (props) => {
         // Call your server's create route here
         axios.post(`http://localhost:8000/api/users/create/${email}/${username}/${password}/${nickname}`)
             .then(response => {
-                console.log(response.data.message);
+                setErrorMessage(response.data.message);
                 // You can handle success, e.g., redirect to login page
             })
             .catch(error => {

@@ -54,6 +54,9 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async function verify
       if (!user) {
         return cb(null, false, { message: 'Incorrect email or password.' });
       }
+      if (user.disabled === true) {
+        return cb(null, false, { message: 'Contact the site administrator' });
+      }
   
       // Compare hashed password using bcrypt.compare
       const passwordMatch = await bcrypt.compare(password, user.password);
@@ -156,10 +159,6 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
         return res.status(400).json({ message: `Username ${username} already exists.` });
       }
   
-      const existingNickname = await User.findOne({ nickname });
-      if (existingNickname) {
-        return res.status(400).json({ message: `Nickname ${nickname} already exists.` });
-      }
   
       // Generate a random salt
       const salt = await bcrypt.genSalt(10);
@@ -181,17 +180,44 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
   
       // Save the user to MongoDB
       await newUser.save();
+
+      // Generate a unique verification link (you may use a hash of user information)
+      const verificationLink = `http://localhost:8000/api/users/verify/${email}/${newUser._id}`;
+      // Display the verification link to the user (you may send it to the client in the response)
   
       console.log('New user created:', newUser);
-  
+
+        console.log(verificationLink) 
       console.log(`Verification email sent to: ${email}`);
   
-      res.json({ message: 'User created successfully. Check your email for verification.' });
+      res.json({ message: `User created successfully. Copy and past this link to verify your account ${verificationLink}` });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: 'Internal Server Error' });
+      res.status(500).json({ message: `Internal Server Error.` });
     }
   });
+  
+  userRouter.get('/verify/:email/:userId', async (req, res) => {
+    const { email, userId } = req.params;
+
+    try {
+        // Find the user by email and ID
+        const user = await User.findOne({ email, _id: userId });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid verification link.' });
+        }
+
+        // Mark the user as verified
+        user.verified = true;
+        await user.save();
+
+        res.json({ message: 'Email address verified successfully.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+});
 
 
   userRouter.post('/updatePass/:email/:newPass/:confPass', async (req, res) => {
