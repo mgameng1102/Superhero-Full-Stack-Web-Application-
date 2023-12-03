@@ -62,3 +62,7 @@ button:hover {
   .superhero-view p {
     margin: 0;
   }
+
+  .public-list-item{
+    margin-top: 20px;
+  }

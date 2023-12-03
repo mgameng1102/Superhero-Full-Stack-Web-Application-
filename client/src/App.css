@@ -57,6 +57,18 @@
   left:20px
 }
 
+.public-lists {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px; /* Set the height as needed */
+  margin-top: 20px; /* Adjust the margin-top as needed */
+}
+
+#login{
+  margin-left:auto;
+}
+
 
 
 

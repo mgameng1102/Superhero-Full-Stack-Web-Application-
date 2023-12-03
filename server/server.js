@@ -451,7 +451,9 @@ app.get("/public-lists", async (req, res) => {
           creatorNickname: "$nickname",
           numberOfHeroes: { $size: "$superheroLists.heroes" },  // Calculate the number of heroes in the list
           averageRating: { $avg: "$superheroLists.reviews.rating" },  // Calculate the average rating
-          lastModified: "$superheroLists.lastModified"
+          lastModified: "$superheroLists.lastModified",
+          description: "$superheroLists.description",
+          heroes: "$superheroLists.heroes"
         }
       }
     ]);
