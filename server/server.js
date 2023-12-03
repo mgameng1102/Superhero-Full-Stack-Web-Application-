@@ -17,6 +17,7 @@ const userRouter = express.Router();
 const session = require('express-session');
 
 
+
 //Mongoose Connection
 mongoose.connect("mongodb+srv://markgameng2:mark1102@cluster0.okwqgu4.mongodb.net/<database>", {
     useNewUrlParser: true,
@@ -45,6 +46,33 @@ app.use((req, res, next) => {
     console.log(`${req.method} request for ${req.url}`);
     next();
 });
+
+// Add a secret key for JWT token generation
+const jwtSecretKey = 'secretjwt';
+
+// Middleware to verify JWT token
+const authenticateToken = (req, res, next) => {
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  jwt.verify(token, jwtSecretKey, (err, user) => {
+    console.log(token);
+    console.log('JWT Secret Key:', jwtSecretKey);
+    if (err) {
+      console.log('Invalid token error:', err);
+
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+
+    req.user = user;
+    next();
+  });
+};
+
+
 
 
 //Email and Password authentication
@@ -83,10 +111,15 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async function verify
   });
   
   passport.deserializeUser((id, done) => {
-    User.findById(id, (err, user) => {
-      done(err, user);
-    });
+    User.findById(id)
+      .then((user) => {
+        done(null, user);
+      })
+      .catch((err) => {
+        done(err, null);
+      });
   });
+  
   
 
 
@@ -107,7 +140,7 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async function verify
             }
 
             // Generate a JWT token
-            const token = jwt.sign({ userId: user._id, email: user.email }, 'your_secret_key', {
+            const token = jwt.sign({ userId: user._id, email: user.email }, 'secretjwt', {
                 expiresIn: '1h' // Set the expiration time for the token (e.g., 1 hour)
             });
 
@@ -115,7 +148,9 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async function verify
             res.status(200).json({
                 message: info.message || 'User authenticated successfully',
                 token: token
+                
             });
+            console.log(token)
         });
     })(req, res, next);
 });
@@ -277,70 +312,11 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
 
 
   
-  userRouter.post('/add-list/:email/:listName/:description?/:visibility?/:ids', async (req, res) => {
-    const { email, listName, description, visibility } = req.params;
-    const ids = req.params.ids.split(',').map(id => parseInt(id));
 
-    try {
-        // Find the user by email in MongoDB
-        const user = await User.findOne({ email });
 
-        if (!user) {
-            return res.status(404).json({ message: `User with email ${email} not found.` });
-        }
 
-        // Check if the user already has 20 lists
-        if (user.superheroLists.length >= 20) {
-            return res.status(400).json({ message: `User has reached the maximum limit of 20 lists.` });
-        }
 
-        // Check if the list name is unique
-        const isListNameUnique = user.superheroLists.every(list => list.listName !== listName);
-        if (!isListNameUnique) {
-            return res.status(400).json({ message: `List name ${listName} already exists for this user.` });
-        }
 
-        // Create a superhero list object with lastModified property
-        const newList = {
-            listName,
-            description: description || '',
-            visibility: visibility || 'private',
-            heroes: [],
-            reviews: [],
-            lastModified: new Date(), // Adding lastModified property with the current date and time
-        };
-
-        // Add superheroes to the list
-        let heroNotFoundFlag = false;
-        for (const id of ids) {
-            const hero = superheroInfo.find(h => h.id === id);
-
-            if (hero) {
-                // Add the hero to the list
-                newList.heroes.push(hero);
-            } else {
-                console.log(`Hero ${id} was not found!`);
-                res.status(404).json({ message: `Hero ${id} was not found!` });
-                heroNotFoundFlag = true;
-                break;
-            }
-        }
-
-        if (!heroNotFoundFlag) {
-            // Add the new list to the user's superheroLists array
-            user.superheroLists.push(newList);
-
-            await user.save();
-
-            console.log(`New superhero list added to ${email}:`, newList);
-
-            res.json({ message: 'Superhero list added successfully.' });
-        }
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Internal Server Error' });
-    }
-});
 
 userRouter.post('/edit-list/:email/:listName', async (req, res) => {
   const { email, listName } = req.params;
