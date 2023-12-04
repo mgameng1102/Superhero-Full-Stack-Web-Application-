@@ -410,13 +410,27 @@ userRouter.post('/add-list', authenticateToken, async (req, res) => {
 
 
 
-userRouter.post('/edit-list/:email/:listName', async (req, res) => {
-  const { email, listName } = req.params;
-  const { newListName, newDescription, newVisibility, newIds } = req.query;
+app.post('/edit-list/:listName', authenticateToken, async (req, res) => {
+  const { listName } = req.params;
+  const { newListName, newDescription, newVisibility, newIds } = req.body;
   const newHeroIds = newIds ? newIds.split(',').map(id => parseInt(id)) : [];
 
-  console.log(`${newListName}, ${newDescription}, ${newVisibility}, ${newIds}`)
+  console.log({ newListName, newDescription, newVisibility, newIds })
+
+  // Extract the token from the request headers
+  const token = req.headers.authorization;
+  console.log('Received token:', token);
+
+  if (!token) {
+    return res.status(401).json({ message: 'Authorization token not provided.' });
+  }
+
   try {
+    const decoded = jwt.verify(token, 'secretjwt'); // Replace 'your_secret_key' with your actual secret key
+    console.log('Decoded token:', decoded);
+
+    const { email } = decoded;
+
     // Find the user by email in MongoDB
     const user = await User.findOne({ email });
 
@@ -431,23 +445,28 @@ userRouter.post('/edit-list/:email/:listName', async (req, res) => {
       return res.status(404).json({ message: `List with name ${listName} not found for this user.` });
     }
 
+    if (newListName !== undefined && newListName !== listName) {
+      const isListNameUnique = user.superheroLists.every(list => list.listName !== newListName);
+      if (!isListNameUnique) {
+        return res.status(400).json({ message: `List name ${newListName} already exists for this user.` });
+      }
+    }
+
     // Update aspects of the existing list
     const editedList = user.superheroLists[listIndex];
 
     // Update list properties if provided
-    if (newListName !== undefined) {
+    if (newListName !== undefined && newListName !== '') {
       editedList.listName = newListName;
     }
 
-    if (newDescription !== undefined) {
+    if (newDescription !== undefined && newDescription !== '') {
       editedList.description = newDescription;
     }
 
-    if (newVisibility !== undefined) {
+    if (newVisibility !== undefined && newVisibility !== '') {
       editedList.visibility = newVisibility;
     }
-    editedList.heroes = [];
-
 
     // Add new heroes to the list
     let heroNotFoundFlag = false;
@@ -455,8 +474,10 @@ userRouter.post('/edit-list/:email/:listName', async (req, res) => {
       const hero = superheroInfo.find(h => h.id === id);
 
       if (hero) {
-        // Add the hero to the list
-        editedList.heroes.push(hero);
+        // Add the hero to the list only if not already present
+        if (!editedList.heroes.some(existingHero => existingHero.id === hero.id)) {
+          editedList.heroes.push(hero);
+        }
       } else {
         console.log(`Hero ${id} was not found!`);
         res.status(404).json({ message: `Hero ${id} was not found!` });
@@ -480,9 +501,11 @@ userRouter.post('/edit-list/:email/:listName', async (req, res) => {
     }
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message:  'Internal Server Error' });
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+
 
 
 app.get("/view-lists", authenticateToken, async (req, res) => {

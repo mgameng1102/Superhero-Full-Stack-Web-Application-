@@ -28,6 +28,10 @@ function App() {
     setCurrentForm("register");
   };
 
+  const switchToUpdate =() =>{
+    setCurrentForm("update");
+  }
+
   const handleSearchClick = (event) => {
     event.preventDefault(); // Prevent the default behavior of the anchor tag
 
@@ -44,11 +48,6 @@ function App() {
     event.preventDefault(); // Prevent the default behavior of the anchor tag
 
     setPublicLists(!viewPublicLists);
-  }
-  const handleUserLists = (event) =>{
-    event.preventDefault(); // Prevent the default behavior of the anchor tag
-
-    setUserLists(!viewUserLists);
   }
   
   const handleCreateClick = (event) =>{
@@ -93,7 +92,7 @@ function App() {
         />
       )}
       {currentForm === "login" && (
-        <Login onFormSwitch={switchToRegister} onLogin={handleLogin} />
+        <Login onFormSwitch={(type) => type === 'register' ? switchToRegister() : switchToUpdate()} onLogin={handleLogin} />
       )}
       {currentForm === "register" && (
         <Register onFormSwitch={switchToLogin} />
@@ -266,6 +265,53 @@ class Unauthorized extends Component {
         // Handle errors as needed
       });
   };
+
+  handleModifyList = (e) => {
+    if (e) {
+      e.preventDefault(); // Prevent the default behavior of the anchor tag
+    }
+    console.log('Authorization Header:', `${this.props.userToken}`);
+
+    // Get the input values from your form
+    const listName = document.getElementById("list-name").value;
+    const newListName = document.getElementById("new-name").value;
+    const newDescription = document.getElementById("new-description").value;
+    const newVisibility = document.getElementById("new-visibility").value;
+    const newHeroes = document.getElementById("new-heroes").value;
+
+    console.log( {listName, newListName, newDescription, newVisibility, newHeroes})
+  
+  
+    // Prepare the request body
+   
+    console.log("User Token", this.props.userToken);
+  
+    // Make a POST request to your server's add-list route
+    axios.post(`http://localhost:8000/edit-list/${listName}`,{
+        newListName: newListName,
+        newDescription: newDescription,
+        newVisibility: newVisibility,
+        newIds: newHeroes
+      },
+      {
+        headers: {
+          Authorization: `${this.props.userToken}` // Include the user token in the request headers
+        }
+      }
+    )
+      .then(response => {
+        console.log("Response data:", response.data);
+        this.handleUserLists();
+        this.handlePublicLists();
+        // Handle the response as needed
+      })
+      .catch(error => {
+        console.log("Error during creating a list:", error.message);
+        // Handle errors as needed
+      });
+  };
+
+
   
   
   renderUserLists() {
@@ -476,14 +522,18 @@ class Unauthorized extends Component {
                 <li>
                     <a>List Name</a>
                     <input type="text" class="list-input" placeholder="Enter list name" id="list-name"></input>
+                    <a>New List Name</a>
+                    <input type="text" class="list-input" placeholder="Enter new list name" id="new-name"></input>
+                    <a>New Description</a>
+                    <input type="text" class="list-input" placeholder="Enter new description" id="new-description"></input>
+                    <a>New Visilibilty</a>
+                    <input type="text" class="list-input" placeholder="Enter visiblity" id="new-visibility"></input>
+                    <a>Add Superheroes</a>
+                    <input type="text" class="list-input" placeholder="1,2,3...." id="new-heroes"></input>
+                    
                 </li>
-                <li>
-                    <a>Superhero IDS</a>
-                    <input type="text" class="list-input" placeholder="1,2,3...." id="superhero-ids"></input>
-                    <button id="add-superhero">Add Superheroes</button>
-                    <button id="delete-list">Delete List</button>
-                    <button id="view-list">View List</button>
-                </li>
+                <button id="modify-list" onClick = {this.handleModifyList}>Modify</button>
+                <button id="delete-list">Delete List</button>
             </ul>   
             <h3>Your Lists</h3>
             <ul id="superheroInfo" className="superhero-list">
