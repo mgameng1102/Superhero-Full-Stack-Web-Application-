@@ -16,6 +16,7 @@ function App() {
   const [searchClicked, setSearchClicked] = useState(false);
   const [aboutClicked, setAboutClicked] = useState(false);
   const [viewPublicLists, setPublicLists] = useState(false);
+  const [viewUserLists, setUserLists] = useState(false);
   const [createClicked, setCreateClicked] = useState(false);
   const [userToken, setUserToken] = useState(null); // New state variable for user token
 
@@ -44,6 +45,11 @@ function App() {
 
     setPublicLists(!viewPublicLists);
   }
+  const handleUserLists = (event) =>{
+    event.preventDefault(); // Prevent the default behavior of the anchor tag
+
+    setUserLists(!viewUserLists);
+  }
   
   const handleCreateClick = (event) =>{
     event.preventDefault(); // Prevent the default behavior of the anchor tag
@@ -64,12 +70,6 @@ function App() {
 
     // Set the current form to 'unauthorized' (or any other initial state you want)
     setCurrentForm('unauthorized');
-  };
-
-  const handleSuccessfulLogin = () => {
-    // Assuming `token` is the token received from the login API
-    const token = 'secretjwt';
-    handleLogin(token); // Call the handleLogin function with the token
   };
 
 
@@ -109,15 +109,25 @@ class Unauthorized extends Component {
   state = {
     searchResults: [],
     publicLists: [],
+    userLists: [],
     expandedHero: null,
     clicked: false, // Add this line
 
   };
+  componentDidMount() {
+    // Fetch user lists when the component mounts
+    this.handleUserLists();
+    this.handlePublicLists();
+  }
   componentDidUpdate(prevProps) {
     // Check if the section changed, if yes, reset the state
     if (this.props.viewPublicLists && !prevProps.viewPublicLists) {
       // Fetch and update the state only if transitioning to the public lists view
       this.handlePublicLists();
+    }
+
+    if (this.props.viewUserLists && !prevProps.viewUserLists) {
+      this.handleUserLists();
     }
   }
   handleExpand = (heroId) => {
@@ -163,6 +173,7 @@ class Unauthorized extends Component {
         console.error("Error during search:", error.message);
       });
   }
+
   
   handlePublicLists = (e) => {
     if (e) {
@@ -177,6 +188,33 @@ class Unauthorized extends Component {
           this.setState({ publicLists: response.data.publicLists }, () => {
             // This callback will be executed after the state has been updated
             console.log("Updated publicLists:", this.state.publicLists); // Add this line for debugging
+          });
+        } else {
+          console.error("Invalid response format");
+        }
+      })
+      .catch(error => {
+        console.error("Error during fetching public lists:", error.message);
+      });
+  };
+
+  handleUserLists = (e) => {
+    if (e) {
+      e.preventDefault(); // Prevent the default behavior of the anchor tag
+    }
+    
+    // Call your server's route to fetch public lists
+    axios.get("http://localhost:8000/view-lists",{
+      headers: {
+        Authorization: `${this.props.userToken}` // Include the user token in the request headers
+      }
+    })
+      .then(response => {
+        console.log("Response data:", response.data); // Add this line for debugging
+        if (response && response.data) {
+          this.setState({ userLists: response.data}, () => {
+            // This callback will be executed after the state has been updated
+            console.log("Users", this.state.userLists); // Add this line for debugging
           });
         } else {
           console.error("Invalid response format");
@@ -219,6 +257,8 @@ class Unauthorized extends Component {
     )
       .then(response => {
         console.log("Response data:", response.data);
+        this.handleUserLists();
+        this.handlePublicLists();
         // Handle the response as needed
       })
       .catch(error => {
@@ -228,6 +268,38 @@ class Unauthorized extends Component {
   };
   
   
+  renderUserLists() {
+    if (!Array.isArray(this.state.userLists) || this.state.userLists.length === 0) {
+      console.error("User lists is not an array or is empty");
+      return null;
+    }
+    
+    console.log(this.state.userLists)
+    // Assuming userLists is an array of superhero list objects
+    return this.state.userLists.map((list) => (
+      
+      <div>
+        <ul id="superheroInfo" className="superhero-list">
+          <li id="list" key={list.listName}>
+            <div className="user-list-items">
+              <strong>List Name: </strong> {list.listName} | <strong>Description: </strong> {list.description}
+              <button onClick={() => this.handleExpand(list.listName)}>View</button>
+            </div>
+            {this.state.expandedHero === list.listName && (
+              <div className="superhero-view">
+                {list.heroes.map((hero) => (
+                  <li key={hero.id}>
+                    <p><strong>Hero Name:</strong> {hero.name}</p>
+                    <p><strong>Publisher:</strong> {hero.Publisher}</p>
+                  </li>
+                ))}
+              </div>
+            )}
+          </li>
+        </ul>
+      </div>
+    ));
+  }
   
 
   
@@ -248,7 +320,8 @@ class Unauthorized extends Component {
         <div className="public-list-items">
           <strong>List Name: </strong> {list.listName} | <strong>Nickname: </strong> {list.creatorNickname} |
           <strong>Number of heroes: </strong>{list.numberOfHeroes}|
-          <strong>Average Rating: </strong>{list.averageRating}
+          <strong>Average Rating: </strong>{list.averageRating} | 
+          <strong>Last Modified: </strong>{list.lastModified}
   
           <button onClick={() => this.handleExpand(list.listName)}>Expand</button>
         </div>
@@ -264,7 +337,8 @@ class Unauthorized extends Component {
           </div>
           
         )}
-      </li></ul>
+      </li>
+      </ul>
     </div>
 
     ));
@@ -339,6 +413,8 @@ class Unauthorized extends Component {
 
 
 
+
+
         {this.props.searchClicked && (
           <div>
           <section id="search">
@@ -380,7 +456,7 @@ class Unauthorized extends Component {
 
 
         {this.props.createClicked && (
-            <div class="list-bar">
+            <div class="search-bar">
             <ul>
                 <h3>Create Favourite List</h3>
                 <li>
@@ -409,6 +485,10 @@ class Unauthorized extends Component {
                     <button id="view-list">View List</button>
                 </li>
             </ul>   
+            <h3>Your Lists</h3>
+            <ul id="superheroInfo" className="superhero-list">
+              {this.renderUserLists()}
+            </ul>
         </div>
         )}
 

@@ -141,7 +141,7 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async function verify
 
             // Generate a JWT token
             const token = jwt.sign({ userId: user._id, email: user.email }, 'secretjwt', {
-                expiresIn: '1h' // Set the expiration time for the token (e.g., 1 hour)
+                expiresIn: '2h' // Set the expiration time for the token (e.g., 1 hour)
             });
 
             // Send the token to the client
@@ -334,13 +334,19 @@ userRouter.post('/add-list', authenticateToken, async (req, res) => {
       const decoded = jwt.verify(token, 'secretjwt'); // Replace 'your_secret_key' with your actual secret key
       console.log('Decoded token:', decoded);
 
-      const { email } = decoded;
+      const { email} = decoded;
+
+     
 
       // Find the user by email in MongoDB
       const user = await User.findOne({ email });
 
       if (!user) {
           return res.status(404).json({ message: `User with email ${email} not found.` });
+      }
+
+      if(!user.verified){
+        return res.status(404).json({ message: `User not verified. Can't create list` });
       }
 
       // Check if the user already has 20 lists
@@ -479,20 +485,24 @@ userRouter.post('/edit-list/:email/:listName', async (req, res) => {
 });
 
 
-app.get("/view-lists/:username" ,async (req,res) =>{
-  const {username} = req.params;
+app.get("/view-lists", authenticateToken, async (req, res) => {
+  try {
+    // Extract the user information from the token
+    const token = req.headers.authorization;
+    const decoded = jwt.verify(token, 'secretjwt'); // Replace with your actual secret key
+    const { email } = decoded;
 
-  try{
-    const user = await User.findOne({username});
+    // Find the user by email in MongoDB
+    const user = await User.findOne({ email });
 
-    if(!user){
-      return res.status(400).json({message: `User ${username} doesn't exist`});
+    if (!user) {
+      return res.status(404).json({ message: `User with email ${email} not found.` });
     }
 
+    // Retrieve and send the superhero lists associated with the user
     const superheroLists = user.superheroLists;
-
     res.json(superheroLists);
-  }catch (error) {
+  } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
@@ -548,28 +558,35 @@ app.get("/public-lists", async (req, res) => {
 
 
 
-userRouter.post("/delete-list/:email/:listName", (req, res) => {
-    const { email, listName } = req.params;
+userRouter.post("/delete-list/:email/:listName", async (req, res) => {
+  const { email, listName } = req.params;
 
-    // Check if the user exists
-    const user = userStore.get(email);
-    if (!user) {
-        return res.status(404).json({ message: `User with email ${email} not found.` });
-    }
+  try {
+      // Find the user by email in MongoDB
+      const user = await User.findOne({ email });
 
-    // Find the index of the list with a case-insensitive comparison
-    const index = user.superheroLists.findIndex(list => list.listName.toLowerCase() === listName.toLowerCase());
+      if (!user) {
+          return res.status(404).json({ message: `User with email ${email} not found.` });
+      }
 
-    if (index === -1) {
-        return res.status(400).json({ message: `List name ${listName} doesn't exist.` });
-    }
+      // Find the index of the list with a case-insensitive comparison
+      const index = user.superheroLists.findIndex(list => list.listName.toLowerCase() === listName.toLowerCase());
 
-    // Remove the list at the specified index
-    user.superheroLists.splice(index, 1);
+      if (index === -1) {
+          return res.status(400).json({ message: `List name ${listName} doesn't exist.` });
+      }
 
-    userStore.put(email, user);
+      // Remove the list at the specified index
+      user.superheroLists.splice(index, 1);
 
-    res.json({ message: `List "${listName}" deleted successfully.` });
+      // Save the updated user to MongoDB
+      await user.save();
+
+      res.json({ message: `List "${listName}" deleted successfully.` });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
 
 
