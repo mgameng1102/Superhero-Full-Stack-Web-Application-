@@ -312,12 +312,19 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
 
   
 userRouter.post('/add-list', authenticateToken, async (req, res) => {
+  console.log('Request Body:', req.body);
+  console.log('Request Headers:', req.headers);
   const { listName, description, visibility} = req.body;
-  const ids = req.body.ids.split(',').map(id => parseInt(id));
+  if (typeof req.body.ids !== 'string') {
+    return res.status(400).json({ message: 'Invalid superhero IDs format.' });
+  }
 
+  // Split the string into an array of integers
+  const ids = req.body.ids.split(',').map(id => parseInt(id));
   // Extract the token from the request headers
   const token = req.headers.authorization;
-  console.log(token)
+  console.log('Received token:', token);
+
   if (!token) {
       return res.status(401).json({ message: 'Authorization token not provided.' });
   }
@@ -325,7 +332,8 @@ userRouter.post('/add-list', authenticateToken, async (req, res) => {
   try {
       // Verify the token and extract user information
       const decoded = jwt.verify(token, 'secretjwt'); // Replace 'your_secret_key' with your actual secret key
-      
+      console.log('Decoded token:', decoded);
+
       const { email } = decoded;
 
       // Find the user by email in MongoDB
@@ -349,8 +357,8 @@ userRouter.post('/add-list', authenticateToken, async (req, res) => {
       // Create a superhero list object with lastModified property
       const newList = {
           listName,
-          description: description || '',
-          visibility: visibility || 'private',
+          description: description || '', // Use empty string if description is falsy
+          visibility: visibility || 'private', // Use 'private' if visibility is falsy
           heroes: [],
           reviews: [],
           lastModified: new Date(), // Adding lastModified property with the current date and time

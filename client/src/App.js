@@ -17,6 +17,7 @@ function App() {
   const [aboutClicked, setAboutClicked] = useState(false);
   const [viewPublicLists, setPublicLists] = useState(false);
   const [createClicked, setCreateClicked] = useState(false);
+  const [userToken, setUserToken] = useState(null); // New state variable for user token
 
   const switchToLogin = () => {
     setCurrentForm("login");
@@ -25,6 +26,7 @@ function App() {
   const switchToRegister = () => {
     setCurrentForm("register");
   };
+
   const handleSearchClick = (event) => {
     event.preventDefault(); // Prevent the default behavior of the anchor tag
 
@@ -54,6 +56,21 @@ function App() {
     setSuperheroListsClicked(!superheroListsClicked);
  
   };
+  const handleLogin = (token) => {
+    // Update the state with the user token
+    console.log(token);
+    setUserToken(token);
+   
+
+    // Set the current form to 'unauthorized' (or any other initial state you want)
+    setCurrentForm('unauthorized');
+  };
+
+  const handleSuccessfulLogin = () => {
+    // Assuming `token` is the token received from the login API
+    const token = 'secretjwt';
+    handleLogin(token); // Call the handleLogin function with the token
+  };
 
 
   return (
@@ -65,15 +82,18 @@ function App() {
         onCreateClick={handleCreateClick}
         onAboutClick={handleAboutClick}
         onPublicLists={handlePublicLists}
+        
 
         superheroListsClicked={superheroListsClicked}
         searchClicked={searchClicked}
         aboutClicked={aboutClicked}
         createClicked={createClicked}
-        viewPublicLists={viewPublicLists}/>
+        viewPublicLists={viewPublicLists}
+        userToken={userToken}  // Pass the userToken to the Unauthorized component
+        />
       )}
       {currentForm === "login" && (
-        <Login onFormSwitch={switchToRegister} />
+        <Login onFormSwitch={switchToRegister} onLogin={handleLogin} />
       )}
       {currentForm === "register" && (
         <Register onFormSwitch={switchToLogin} />
@@ -124,6 +144,8 @@ class Unauthorized extends Component {
     const race = document.getElementById("search-race").value;
     const publisher = document.getElementById("search-publisher").value;
     const power = document.getElementById("search-power").value;
+
+  
   
     // Call your server's search route here
     axios.get(`http://localhost:8000/search?name=${name}&race=${race}&publisher=${publisher}&power=${power}`)
@@ -146,6 +168,7 @@ class Unauthorized extends Component {
     if (e) {
       e.preventDefault(); // Prevent the default behavior of the anchor tag
     }
+    
     // Call your server's route to fetch public lists
     axios.get("http://localhost:8000/public-lists")
       .then(response => {
@@ -163,6 +186,47 @@ class Unauthorized extends Component {
         console.error("Error during fetching public lists:", error.message);
       });
   };
+
+  handleCreateList = (e) => {
+    if (e) {
+      e.preventDefault(); // Prevent the default behavior of the anchor tag
+    }
+    console.log('Authorization Header:', `${this.props.userToken}`);
+
+    // Get the input values from your form
+    const listName = document.getElementById("create-list-name").value;
+    const description = document.getElementById("create-list-description").value;
+    const visibility = document.getElementById("create-list-visibility").value;
+    const superheroIds = document.getElementById("create-list-superhero-ids").value;
+  
+  
+    // Prepare the request body
+   
+    console.log("User Token", this.props.userToken);
+  
+    // Make a POST request to your server's add-list route
+    axios.post("http://localhost:8000/api/users/add-list/",{
+        listName: listName,
+        description: description,
+        visibility: visibility,
+        ids: superheroIds
+      },
+      {
+        headers: {
+          Authorization: `${this.props.userToken}` // Include the user token in the request headers
+        }
+      }
+    )
+      .then(response => {
+        console.log("Response data:", response.data);
+        // Handle the response as needed
+      })
+      .catch(error => {
+        console.log("Error during creating a list:", error.message);
+        // Handle errors as needed
+      });
+  };
+  
   
   
 
@@ -178,7 +242,7 @@ class Unauthorized extends Component {
     // Assuming publicLists is an array of superhero list objects
     return this.state.publicLists.map((list) => (
       <div>
-      <h2>Public Lists</h2>
+     
       <ul id="superheroInfo" className="superhero-list">
       <li id="list" key={list.listName}>
         <div className="public-list-items">
@@ -241,7 +305,6 @@ class Unauthorized extends Component {
         <nav className="top-nav">
           <div>
           <h> SUPERHERO WEBSITE</h>
-         
             <ul id="nav-bar" >
               <li><a href="#!" onClick={this.props.onAboutClick}>About</a></li>
               <li><a href="index.html" onClick={(e) => this.props.onPublicLists(e)}>Lists</a></li>
@@ -266,6 +329,7 @@ class Unauthorized extends Component {
         {this.props.viewPublicLists && (
       
           <div id="Superheroes">
+            <h2>Public Lists</h2>
             <ul id="superheroInfo" className="superhero-list">
               {this.renderPublicLists()}
             </ul>
@@ -320,8 +384,15 @@ class Unauthorized extends Component {
             <ul>
                 <h3>Create Favourite List</h3>
                 <li>
-                    <input type="text" class="list-input" placeholder="Enter list name" id="create-list"></input>
-                    <button id="addList">Confirm</button>
+                    <a>List Name</a>
+                    <input type="text" class="list-input" placeholder="Enter list name" id="create-list-name"></input>
+                    <a>Description</a>
+                    <input type="text" class="list-input" placeholder="Enter Description" id="create-list-description"></input>
+                    <a>Visibility</a>
+                    <input type="text" class="list-input" placeholder="Enter visibility" id="create-list-visibility"></input>
+                    <a>Superhero Ids</a>
+                    <input type="text" class="list-input" placeholder="1,2,3....." id="create-list-superhero-ids"></input>
+                    <button id="addList" onClick = {this.handleCreateList}>Create</button>
                 </li>
             </ul>
             <ul>
