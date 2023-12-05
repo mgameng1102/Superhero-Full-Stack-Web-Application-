@@ -14,11 +14,12 @@ function App() {
   const [currentForm, setCurrentForm] = useState('unauthorized');
   const [superheroListsClicked, setSuperheroListsClicked] = useState(false);
   const [searchClicked, setSearchClicked] = useState(false);
-  const [aboutClicked, setAboutClicked] = useState(false);
+  const [aboutClicked, setAboutClicked] = useState(true);
   const [viewPublicLists, setPublicLists] = useState(false);
   const [createClicked, setCreateClicked] = useState(false);
   const [adminClicked, setAdminClicked] = useState(false);
   const [userToken, setUserToken] = useState(null); // New state variable for user token
+  
 
   const switchToLogin = () => {
     setCurrentForm("login");
@@ -35,38 +36,54 @@ function App() {
   const handleSearchClick = (event) => {
     event.preventDefault(); // Prevent the default behavior of the anchor tag
 
-    setSearchClicked(!searchClicked);
+    setSearchClicked(true);
+    setSuperheroListsClicked(false);
+    setAboutClicked(false);
+    setPublicLists(false);
+    setCreateClicked(false);
+    setAdminClicked(false);
   };
 
   const handleAdminClick = (event) => {
     event.preventDefault(); // Prevent the default behavior of the anchor tag
 
-    setAdminClicked(!adminClicked);
+    setAdminClicked(true);
+    setSearchClicked(false);
+    setAboutClicked(false);
+    setPublicLists(false);
+    setCreateClicked(false);
   };
 
   const handleAboutClick = (event) => {
     event.preventDefault(); // Prevent the default behavior of the anchor tag
 
-    setAboutClicked(!aboutClicked);
+    setAboutClicked(true);
+    setSearchClicked(false);
+    setPublicLists(false);
+    setCreateClicked(false);
+    setAdminClicked(false);
   };
 
   const handlePublicLists = (event) =>{
     event.preventDefault(); // Prevent the default behavior of the anchor tag
 
-    setPublicLists(!viewPublicLists);
+    setPublicLists(true);
+    setSearchClicked(false);
+    setAboutClicked(false);
+    setCreateClicked(false);
+    setAdminClicked(false);
   }
   
   const handleCreateClick = (event) =>{
     event.preventDefault(); // Prevent the default behavior of the anchor tag
 
-    setCreateClicked(!createClicked);
+    setPublicLists(false);
+    setSearchClicked(false);
+    setAboutClicked(false);
+    setCreateClicked(true);
+    setAdminClicked(false);
   }
 
-
-  const handleSuperheroListsClick = () => {
-    setSuperheroListsClicked(!superheroListsClicked);
- 
-  };
   const handleLogin = (token) => {
     // Update the state with the user token
     console.log(token);
@@ -82,7 +99,6 @@ function App() {
     <div className="App">
       {currentForm === "unauthorized" && (
         <Unauthorized onFormSwitch={switchToLogin} 
-        onSuperheroListsClick={handleSuperheroListsClick}
         onSearchClick={handleSearchClick}
         onCreateClick={handleCreateClick}
         onAboutClick={handleAboutClick}
@@ -117,6 +133,7 @@ class Unauthorized extends Component {
     searchResults: [],
     publicLists: [],
     userLists: [],
+    user:[],
     expandedHero: null,
     clicked: false, // Add this line
 
@@ -125,6 +142,7 @@ class Unauthorized extends Component {
     // Fetch user lists when the component mounts
     this.handleUserLists();
     this.handlePublicLists();
+    this.handleUserInfo();
   }
   componentDidUpdate(prevProps) {
     // Check if the section changed, if yes, reset the state
@@ -169,6 +187,8 @@ class Unauthorized extends Component {
       .then(response => {
         // Check if response and response.data are defined
         if (response && response.data) {
+          alert(response.data.message)
+
           // Update the state with the search results
           this.setState({ searchResults: response.data });
         } else {
@@ -176,10 +196,40 @@ class Unauthorized extends Component {
         }
       })
       .catch(error => {
+        alert(error.response.data.message)
         // Handle errors, log or display an error message
         console.error("Error during search:", error.message);
       });
   }
+
+  handleUserInfo = (e) => {
+    if (e) {
+      e.preventDefault(); // Prevent the default behavior of the anchor tag
+    }
+    // Call your server's route to fetch user information
+    axios.get("http://localhost:8000/user-info", {
+        headers: {
+          Authorization: `${this.props.userToken}` // Include the user token in the request headers
+        }
+      })
+      .then(response => {
+        console.log("User Response data:", response.data); // Add this line for debugging
+        if (response && response.data) {
+          this.setState({ user: response.data }, () => {
+            // This callback will be executed after the state has been updated
+            console.log("Updated User:", this.state.user); // Add this line for debugging
+            
+            // Now, call handleUserLists to fetch and update user lists
+            this.handleUserLists();
+          });
+        } else {
+          console.error("Invalid response format");
+        }
+      })
+      .catch(error => {
+        console.error("Error during fetching user information:", error.message);
+      });
+  };
 
   
   handlePublicLists = (e) => {
@@ -265,13 +315,14 @@ class Unauthorized extends Component {
       }
     )
       .then(response => {
+        alert(response.data.message)
         console.log("Response data:", response.data);
         this.handleUserLists();
         this.handlePublicLists();
         // Handle the response as needed
       })
       .catch(error => {
-      
+        alert(error.response.data.message)
         console.log("Error during creating a list:", error.message);
         // Handle errors as needed
       });
@@ -308,13 +359,15 @@ class Unauthorized extends Component {
       }
     )
       .then(response => {
+        alert(response.data.message)
+
         console.log("Response data:", response.data);
         this.handleUserLists();
         this.handlePublicLists();
         // Handle the response as needed
       })
       .catch(error => {
-      
+        alert(error.response.data.message)
         console.log("Error during creating a list:", error.message);
         // Handle errors as needed
       });
@@ -354,12 +407,15 @@ class Unauthorized extends Component {
       }
     )
       .then(response => {
+        alert(response.data.message)
+
         console.log("Response data:", response.data);
         this.handleUserLists();
         this.handlePublicLists();
         // Handle the response as needed
       })
       .catch(error => {
+        alert(error.response.data.message)
         console.log("Error during creating a list:", error.message);
         // Handle errors as needed
       });
@@ -383,10 +439,13 @@ class Unauthorized extends Component {
       }
       })
       .then(response => {
+        alert(response.data.message)
         console.log("Response data:", response.data);
         // Handle the response as needed
       })
       .catch(error => {
+        alert(error.response.data.message)
+
         console.log("Error during creating a list:", error.message);
         // Handle errors as needed
       });
@@ -409,10 +468,13 @@ class Unauthorized extends Component {
       }
       })
       .then(response => {
+        alert(response.data.message)
         console.log("Response data:", response.data);
         // Handle the response as needed
       })
       .catch(error => {
+        alert(error.response.data.message)
+
         console.log("Error during creating a list:", error.message);
         // Handle errors as needed
       });
@@ -436,10 +498,13 @@ class Unauthorized extends Component {
       }
       })
       .then(response => {
+        alert(response.data.message)
+
         console.log("Response data:", response.data);
         // Handle the response as needed
       })
       .catch(error => {
+        alert(error.response.data.message)
         console.log("Error during creating a list:", error.message);
         // Handle errors as needed
       });
@@ -468,12 +533,14 @@ class Unauthorized extends Component {
       }
       })
       .then(response => {
+        alert(response.data.message)
         console.log("Response data:", response.data);
         this.handleUserLists();
         this.handlePublicLists();
         // Handle the response as needed
       })
       .catch(error => {
+        alert(error.response.data.message)
         console.log("Error during creating a list:", error.message);
         // Handle errors as needed
       });
@@ -582,7 +649,26 @@ class Unauthorized extends Component {
       </li>
     ));
   }
+
+  renderUser() {
+    const { user } = this.state; // Assuming you have the user information in your component state
   
+    if(user.email == null){
+      <p></p>
+    }
+    else if (user) {
+      return (
+        <p>
+          Welcome {user.username}!| Privileges: {user.privilege ? 'true' : 'false'}
+        </p>
+      );
+    } else {
+      return null; // Render nothing if user information is not available
+    }
+  }
+  
+
+
 
   render() {
     return (
@@ -592,6 +678,7 @@ class Unauthorized extends Component {
         <nav className="top-nav">
           <div>
           <h> SUPERHERO WEBSITE</h>
+          <p> {this.renderUser()}</p>
             <ul id="nav-bar" >
               <li><a href="#!" onClick={this.props.onAboutClick}>About</a></li>
               <li><a href="index.html" onClick={(e) => this.props.onPublicLists(e)}>Lists</a></li>
@@ -600,10 +687,19 @@ class Unauthorized extends Component {
               <li><a href="index.html" onClick={this.props.onAdminClick}>Admin</a></li>
 
               <li id="login"><a href="#!" onClick={this.props.onFormSwitch}>Login</a></li>
-            </ul>
+              </ul>
+              
           </div>
           
+          
         </nav>
+        <ul id="dmca-bar">
+                {/* Add links to your policies here */}
+                <li><a href="#" onClick={() => this.openPolicyFile('s&p.txt')}>Security & Privacy Policy</a></li>
+                <li><a href="#!" onClick={this.props.onAcceptableUseClick}>Acceptable Use Policy (AUP)</a></li>
+                <li><a href="#!" onClick={this.props.onDmcaPolicyClick}>DMCA Notice & Takedown Policy</a></li>
+          </ul>
+          
 
         {this.props.aboutClicked && (
           <div className="about">
@@ -643,6 +739,8 @@ class Unauthorized extends Component {
                       <button id="searchPower" onClick={this.handleReview}>Add</button>
 
                   </ul>
+
+
 
           </div>
           

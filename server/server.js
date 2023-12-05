@@ -64,7 +64,7 @@ const authenticateToken = (req, res, next) => {
     if (err) {
       console.log('Invalid token error:', err);
 
-      return res.status(403).json({ message: 'Invalid token' });
+      return res.status(403).json({ message: 'Please Login!' });
     }
 
     req.user = user;
@@ -154,6 +154,36 @@ passport.use(new LocalStrategy({ usernameField: 'email' }, async function verify
             console.log(token)
         });
     })(req, res, next);
+});
+
+app.get('/user-info', authenticateToken, async (req, res) => {
+  try {
+    // Extract the user information from the token
+    const token = req.headers.authorization;
+    const decoded = jwt.verify(token, 'secretjwt'); // Replace with your actual secret key
+    const { email } = decoded;
+
+    // Find the user by email in MongoDB
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: `User with email ${email} not found.` });
+    }
+
+    // Send the user information
+    res.json({
+      email: user.email,
+      username: user.username,
+      nickname: user.nickname,
+      privilege: user.privilege,
+      verified: user.verified,
+      disabled: user.disabled,
+      superheroLists: user.superheroLists,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
 
 
@@ -450,8 +480,6 @@ userRouter.post('/add-list', authenticateToken, async (req, res) => {
   try {
       // Verify the token and extract user information
       const decoded = jwt.verify(token, 'secretjwt'); // Replace 'your_secret_key' with your actual secret key
-      console.log('Decoded token:', decoded);
-
       const { email} = decoded;
 
      
@@ -463,10 +491,6 @@ userRouter.post('/add-list', authenticateToken, async (req, res) => {
           return res.status(404).json({ message: `User with email ${email} not found.` });
       }
 
-      if (user.username === "admin") {
-        return res.status(403).json({ message: `Admin cannot create lists.` });
-        console.log({ message: `Admin cannot create lists.` })
-    }
 
       if(!user.verified){
         return res.status(404).json({ message: `User not verified. Can't create list` });

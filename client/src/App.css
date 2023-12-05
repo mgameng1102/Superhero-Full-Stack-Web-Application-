@@ -69,7 +69,31 @@
   margin-left:auto;
 }
 
+#dmca-bar {
+  background-color: black;
+  padding: 10px;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  list-style: none;
+  margin: 0;align-items: center;
+}
 
+#dmca-bar li {
+  display: inline;
+  margin-right: 20px;
+  
+}
+
+#dmca-bar a {
+  color: white;
+  text-decoration: none;
+}
+
+#dmca-bar a:hover {
+  text-decoration: underline;
+}
 
 
 
