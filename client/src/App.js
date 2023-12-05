@@ -365,6 +365,32 @@ class Unauthorized extends Component {
       });
   };
 
+  handleGrantPrivilege = (e) => {
+    if (e) {
+      e.preventDefault(); // Prevent the default behavior of the anchor tag
+    }
+
+    const email = document.getElementById("modify-user").value;
+
+    console.log('Authorization Header:', `${this.props.userToken}`);
+   
+    console.log("User Token", this.props.userToken);
+  
+    // Make a POST request to your server's add-list route
+    axios.post(`http://localhost:8000/grant-privileges/${email}`, null, {
+      headers: {
+          Authorization: `${this.props.userToken}`
+      }
+      })
+      .then(response => {
+        console.log("Response data:", response.data);
+        // Handle the response as needed
+      })
+      .catch(error => {
+        console.log("Error during creating a list:", error.message);
+        // Handle errors as needed
+      });
+  };
   handleDisable = (e) => {
     if (e) {
       e.preventDefault(); // Prevent the default behavior of the anchor tag
@@ -716,7 +742,7 @@ class Unauthorized extends Component {
                 <li>
                   <a>User you are modifying</a>
                   <input placeholder="Enter Email" id="modify-user"></input>
-                  <button id="grant-privileges">Grant</button>
+                  <button id="grant-privileges" onClick={this.handleGrantPrivilege}>Grant</button>
                   <button id="disable-user" onClick={this.handleDisable}>Disable</button>
                   <button id="enable-user" onClick={this.handleEnable}>Enable</button>
                 </li>

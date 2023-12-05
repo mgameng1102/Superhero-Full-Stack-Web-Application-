@@ -231,7 +231,7 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
       await newUser.save();
 
       // Generate a unique verification link (you may use a hash of user information)
-      const verificationLink = `http://localhost:8000/api/users/verify/${email}/${newUser._id}`;
+      const verificationLink = `http://${req.headers.host}:/api/users/verify/${email}/${newUser._id}`;
       // Display the verification link to the user (you may send it to the client in the response)
   
       console.log('New user created:', newUser);
@@ -348,6 +348,8 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
     }
 });
 
+
+
 app.post('/enable-user/:userEmail', async (req, res) => {
     const { userEmail } = req.params;
     const token = req.headers.authorization;
@@ -384,6 +386,44 @@ app.post('/enable-user/:userEmail', async (req, res) => {
         console.error(error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
+});
+
+app.post('/grant-privileges/:userEmail', async (req, res) => {
+  const { userEmail } = req.params;
+  const token = req.headers.authorization;
+  console.log('Received token:', token);
+
+  try {
+    const decoded = jwt.verify(token, 'secretjwt');
+    console.log('Decoded token:', decoded);
+
+    const { email } = decoded;
+    console.log(email);
+
+    console.log(userEmail);
+    // Check if the user is an admin with the username "add admin"
+    if (email === 'admin@gmail.com') {
+      // Update the user specified by the email to have privileges
+      const updatedUser = await User.findOneAndUpdate(
+        { email: userEmail },
+        { $set: { privilege: true } },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: `User with email ${userEmail} not found.` });
+      }
+
+      console.log(`User with email ${userEmail} has been granted privileges by admin.`);
+      res.status(200).json({ message: `User with email ${userEmail} has been granted privileges by admin.` });
+    } else {
+      // If the user is not an admin, return unauthorized
+      res.status(401).json({ message: 'Unauthorized: Only admin users can grant privileges.' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
 
   
