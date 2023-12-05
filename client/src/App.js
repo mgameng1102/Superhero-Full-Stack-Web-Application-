@@ -680,10 +680,10 @@ class Unauthorized extends Component {
           <h> SUPERHERO WEBSITE</h>
           <p> {this.renderUser()}</p>
             <ul id="nav-bar" >
-              <li><a href="#!" onClick={this.props.onAboutClick}>About</a></li>
-              <li><a href="index.html" onClick={(e) => this.props.onPublicLists(e)}>Lists</a></li>
-              <li><a href="index.html" onClick={this.props.onSearchClick}> Search</a></li>
-              <li><a href="index.html"onClick={this.props.onCreateClick}>Create Lists</a></li>
+              <li><a href="#! " onClick={this.props.onAboutClick}>About</a></li>
+              <li><a href="index.html" onClick={(e) => this.props.onPublicLists(e)}>View Public Lists</a></li>
+              <li><a href="index.html" onClick={this.props.onSearchClick}> Search Superheroes</a></li>
+              <li><a href="index.html"onClick={this.props.onCreateClick}>Create Favourite List</a></li>
               <li><a href="index.html" onClick={this.props.onAdminClick}>Admin</a></li>
 
               <li id="login"><a href="#!" onClick={this.props.onFormSwitch}>Login</a></li>
@@ -813,7 +813,7 @@ class Unauthorized extends Component {
                     <a>New Visilibilty</a>
                     <input type="text" class="list-input" placeholder="Enter visiblity" id="new-visibility"></input>
                     <a>Add Superheroes</a>
-                    <input type="text" class="list-input" placeholder="1,2,3...." id="new-heroes"></input>
+                    <input type="text" class="list-input" placeholder="1,2,3...." id="new-heroes" pattern="^[0-9,]*$" title="Only numbers and commas are allowed"></input>
                     
                 </li>
                 <button id="modify-list" onClick = {this.handleModifyList}>Modify</button>
@@ -854,6 +854,7 @@ class Unauthorized extends Component {
                 <li><a href="#">Security & Privacy Policy</a></li>
                 <li><a href="#!" onClick={this.props.onAcceptableUseClick}>Acceptable Use Policy (AUP)</a></li>
                 <li><a href="#!" onClick={this.props.onDmcaPolicyClick}>DMCA Notice & Takedown Policy</a></li>
+                <li><a id="creator">Created by Mark Gameng</a></li>
           </ul>
 
       </>
