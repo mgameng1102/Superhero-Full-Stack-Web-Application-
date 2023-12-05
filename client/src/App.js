@@ -558,7 +558,7 @@ class Unauthorized extends Component {
     // Assuming userLists is an array of superhero list objects
     return this.state.userLists.map((list) => (
       
-      <div>
+      <div className="view-user-list">
         <ul id="superheroInfo" className="superhero-list">
           <li id="list" key={list.listName}>
             <div className="user-list-items">
@@ -693,12 +693,7 @@ class Unauthorized extends Component {
           
           
         </nav>
-        <ul id="dmca-bar">
-                {/* Add links to your policies here */}
-                <li><a href="#" onClick={() => this.openPolicyFile('s&p.txt')}>Security & Privacy Policy</a></li>
-                <li><a href="#!" onClick={this.props.onAcceptableUseClick}>Acceptable Use Policy (AUP)</a></li>
-                <li><a href="#!" onClick={this.props.onDmcaPolicyClick}>DMCA Notice & Takedown Policy</a></li>
-          </ul>
+       
           
 
         {this.props.aboutClicked && (
@@ -854,7 +849,12 @@ class Unauthorized extends Component {
         )}
 
 
-
+        <ul id="dmca-bar">
+                {/* Add links to your policies here */}
+                <li><a href="#">Security & Privacy Policy</a></li>
+                <li><a href="#!" onClick={this.props.onAcceptableUseClick}>Acceptable Use Policy (AUP)</a></li>
+                <li><a href="#!" onClick={this.props.onDmcaPolicyClick}>DMCA Notice & Takedown Policy</a></li>
+          </ul>
 
       </>
     );

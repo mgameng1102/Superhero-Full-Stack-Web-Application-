@@ -682,7 +682,7 @@ app.post('/edit-list/:listName', authenticateToken, async (req, res) => {
 
       console.log(`List ${listName} edited successfully. Last edited time: ${editedList.lastModified}`);
 
-      res.json({ message: 'List edited successfully.', editedList });
+      res.json({ message: 'List edited successfully.'});
     }
   } catch (error) {
     console.error(error);
@@ -857,7 +857,7 @@ app.get('/search', (req, res) => {
       (!power || (hero.Powers && hero.Powers.some(p => softMatch(p, power))))
   );
 
-  res.json(results);
+  res.json({ message: 'Search Successful'});
 });
 
 
