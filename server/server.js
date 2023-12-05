@@ -311,6 +311,7 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
   });
 
   
+  
 userRouter.post('/add-list', authenticateToken, async (req, res) => {
   console.log('Request Body:', req.body);
   console.log('Request Headers:', req.headers);
@@ -344,6 +345,11 @@ userRouter.post('/add-list', authenticateToken, async (req, res) => {
       if (!user) {
           return res.status(404).json({ message: `User with email ${email} not found.` });
       }
+
+      if (user.username === "admin") {
+        return res.status(403).json({ message: `Admin cannot create lists.` });
+        console.log({ message: `Admin cannot create lists.` })
+    }
 
       if(!user.verified){
         return res.status(404).json({ message: `User not verified. Can't create list` });
@@ -408,7 +414,45 @@ userRouter.post('/add-list', authenticateToken, async (req, res) => {
 
 
 
+app.post("/delete-list/:listName",authenticateToken, async (req, res) => {
+  const { listName } = req.params;
+  const token = req.headers.authorization;
+  if (!token) {
+    return res.status(401).json({ message: 'Authorization token not provided.' });
+  }
+  try {
+      const decoded = jwt.verify(token, 'secretjwt'); // Replace 'your_secret_key' with your actual secret key
+      console.log('Decoded token:', decoded);
 
+      const { email } = decoded;
+
+
+      // Find the user by email in MongoDB
+      const user = await User.findOne({ email });
+
+      if (!user) {
+          return res.status(404).json({ message: `User with email ${email} not found.` });
+      }
+
+      // Find the index of the list with a case-insensitive comparison
+      const index = user.superheroLists.findIndex(list => list.listName.toLowerCase() === listName.toLowerCase());
+
+      if (index === -1) {
+          return res.status(400).json({ message: `List name ${listName} doesn't exist.` });
+      }
+
+      // Remove the list at the specified index
+      user.superheroLists.splice(index, 1);
+
+      // Save the updated user to MongoDB
+      await user.save();
+
+      res.json({ message: `List "${listName}" deleted successfully.` });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
 
 app.post('/edit-list/:listName', authenticateToken, async (req, res) => {
   const { listName } = req.params;
@@ -562,60 +606,76 @@ app.get("/public-lists", async (req, res) => {
 
 
 
-// const validateRating = check('rating').isInt({ min: 1, max: 10 }).withMessage('Rating must be an integer between 1 and 5');
+const validateRating = check('rating').isInt({ min: 1, max: 10 }).withMessage('Rating must be an integer between 1 and 5');
 
-// userRouter.post("/add-review/:username/:listName/:rating/:comment?" ,(req,res) =>{
-//     const { username, listName, rating, comment } = req.params;
+app.post("/add-review", validateRating, async (req, res) => {
+  const { listName, rating, comment, visibility } = req.body;
 
-//     try{
-//       const errors = validationResult(req);
-//       if (!errors.isEmpty()) {
-//         return res.status(400).json({ errors: errors.array() });
-//       }
+  const token = req.headers.authorization;
+  console.log('Received token:', token);
 
-//     }catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Internal Server Error' });
-//     }
-// });
-
-
-
-userRouter.post("/delete-list/:email/:listName", async (req, res) => {
-  const { email, listName } = req.params;
+  if (!token) {
+    return res.status(401).json({ message: 'Authorization token not provided.' });
+  }
 
   try {
-      // Find the user by email in MongoDB
-      const user = await User.findOne({ email });
+    const decoded = jwt.verify(token, 'secretjwt');
+    console.log('Decoded token:', decoded);
 
-      if (!user) {
-          return res.status(404).json({ message: `User with email ${email} not found.` });
-      }
+    const { email } = decoded;
+    const reviewUser = await User.findOne({email});
+    // Find the user whose list needs to be updated
+    const user = await User.findOne({
+      'superheroLists.listName': listName,
+      'superheroLists.visibility': 'public',
+    });
 
-      // Find the index of the list with a case-insensitive comparison
-      const index = user.superheroLists.findIndex(list => list.listName.toLowerCase() === listName.toLowerCase());
+    if(!reviewUser.verified){
+      return res.status(403).json({ message: `User not verified. Can't add Review` });
+    }
 
-      if (index === -1) {
-          return res.status(400).json({ message: `List name ${listName} doesn't exist.` });
-      }
+    console.log('User found:', user);
 
-      // Remove the list at the specified index
-      user.superheroLists.splice(index, 1);
+    if (!user) {
+      return res.status(404).json({ message: `Superhero list ${listName} not found or not public for the user.` });
+    }
 
-      // Save the updated user to MongoDB
-      await user.save();
+    // Find the superhero list within the user's superheroLists
+    const superheroListIndex = user.superheroLists.findIndex(list => list.listName === listName && list.visibility === 'public');
 
-      res.json({ message: `List "${listName}" deleted successfully.` });
+    if (superheroListIndex === -1) {
+      return res.status(404).json({ message: `Superhero list ${listName} not found or not public for the user.` });
+    }
+
+    // Log relevant information for debugging
+    console.log(`Adding review for user ${user.email} and list ${listName}`);
+    console.log('Before adding review:', user.superheroLists[superheroListIndex].reviews);
+
+    // Update the superhero list with the new review
+    user.superheroLists[superheroListIndex].reviews.push({
+      'Reviewed by': email,
+      rating: parseInt(rating),
+      comment: comment || '',
+      visibility: visibility || false,
+    });
+
+    // Save the updated user to MongoDB
+    const updatedUser = await user.save();
+
+    console.log('Updated user:', updatedUser);
+
+    // Log relevant information for debugging
+    console.log('User superheroLists:', updatedUser.superheroLists);
+
+    console.log('After adding review:', updatedUser.superheroLists[superheroListIndex].reviews);
+
+    res.status(200).json({ message: 'Review added successfully.' });
   } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Internal Server Error' });
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
-
-app.get("/message", (req, res) => {
-    res.json({ message: "wassup" });
-});
 
 
 app.get('/search', (req, res) => {
@@ -659,6 +719,7 @@ app.get('/search', (req, res) => {
   res.json(results);
 });
 
+
 app.listen(8000, () => {
-    console.log(`Server is running on port 8000.`);
+  console.log(`Server is running on port 8000.`);
 });

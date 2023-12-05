@@ -16,8 +16,8 @@ function App() {
   const [searchClicked, setSearchClicked] = useState(false);
   const [aboutClicked, setAboutClicked] = useState(false);
   const [viewPublicLists, setPublicLists] = useState(false);
-  const [viewUserLists, setUserLists] = useState(false);
   const [createClicked, setCreateClicked] = useState(false);
+  const [adminClicked, setAdminClicked] = useState(false);
   const [userToken, setUserToken] = useState(null); // New state variable for user token
 
   const switchToLogin = () => {
@@ -36,6 +36,12 @@ function App() {
     event.preventDefault(); // Prevent the default behavior of the anchor tag
 
     setSearchClicked(!searchClicked);
+  };
+
+  const handleAdminClick = (event) => {
+    event.preventDefault(); // Prevent the default behavior of the anchor tag
+
+    setAdminClicked(!adminClicked);
   };
 
   const handleAboutClick = (event) => {
@@ -81,6 +87,7 @@ function App() {
         onCreateClick={handleCreateClick}
         onAboutClick={handleAboutClick}
         onPublicLists={handlePublicLists}
+        onAdminClick={handleAdminClick}
         
 
         superheroListsClicked={superheroListsClicked}
@@ -88,7 +95,8 @@ function App() {
         aboutClicked={aboutClicked}
         createClicked={createClicked}
         viewPublicLists={viewPublicLists}
-        userToken={userToken}  // Pass the userToken to the Unauthorized component
+        userToken={userToken} 
+        adminClicked={adminClicked} // Pass the userToken to the Unauthorized component
         />
       )}
       {currentForm === "login" && (
@@ -197,6 +205,8 @@ class Unauthorized extends Component {
       });
   };
 
+  
+
   handleUserLists = (e) => {
     if (e) {
       e.preventDefault(); // Prevent the default behavior of the anchor tag
@@ -261,6 +271,50 @@ class Unauthorized extends Component {
         // Handle the response as needed
       })
       .catch(error => {
+      
+        console.log("Error during creating a list:", error.message);
+        // Handle errors as needed
+      });
+  };
+
+  handleReview = (e) => {
+    if (e) {
+      e.preventDefault(); // Prevent the default behavior of the anchor tag
+    }
+    console.log('Authorization Header:', `${this.props.userToken}`);
+
+    // Get the input values from your form
+    const listName = document.getElementById("review-list").value;
+    const rating = document.getElementById("review-rating").value;
+    const comment = document.getElementById("review-comment").value;
+    const visibility = document.getElementById("review-visibility").value;
+  
+  
+    // Prepare the request body
+   
+    console.log("User Token", this.props.userToken);
+  
+    // Make a POST request to your server's add-list route
+    axios.post("http://localhost:8000/add-review",{
+        listName: listName,
+        rating: rating,
+        comment: comment,
+        visibility: visibility
+      },
+      {
+        headers: {
+          Authorization: `${this.props.userToken}` // Include the user token in the request headers
+        }
+      }
+    )
+      .then(response => {
+        console.log("Response data:", response.data);
+        this.handleUserLists();
+        this.handlePublicLists();
+        // Handle the response as needed
+      })
+      .catch(error => {
+      
         console.log("Error during creating a list:", error.message);
         // Handle errors as needed
       });
@@ -311,6 +365,39 @@ class Unauthorized extends Component {
       });
   };
 
+
+  handleDeleteList = (e) => {
+    if (e) {
+      e.preventDefault(); // Prevent the default behavior of the anchor tag
+    }
+    console.log('Authorization Header:', `${this.props.userToken}`);
+
+    // Get the input values from your form
+    const listName = document.getElementById("list-name").value;
+
+  
+    console.log(listName)
+    // Prepare the request body
+   
+    console.log("User Token", this.props.userToken);
+  
+    // Make a POST request to your server's add-list route
+    axios.post(`http://localhost:8000/delete-list/${listName}`, null, {
+      headers: {
+          Authorization: `${this.props.userToken}`
+      }
+      })
+      .then(response => {
+        console.log("Response data:", response.data);
+        this.handleUserLists();
+        this.handlePublicLists();
+        // Handle the response as needed
+      })
+      .catch(error => {
+        console.log("Error during creating a list:", error.message);
+        // Handle errors as needed
+      });
+  };
 
   
   
@@ -430,7 +517,7 @@ class Unauthorized extends Component {
               <li><a href="index.html" onClick={(e) => this.props.onPublicLists(e)}>Lists</a></li>
               <li><a href="index.html" onClick={this.props.onSearchClick}> Search</a></li>
               <li><a href="index.html"onClick={this.props.onCreateClick}>Create Lists</a></li>
-              <li><a href="index.html">Admin</a></li>
+              <li><a href="index.html" onClick={this.props.onAdminClick}>Admin</a></li>
 
               <li id="login"><a href="#!" onClick={this.props.onFormSwitch}>Login</a></li>
             </ul>
@@ -453,6 +540,30 @@ class Unauthorized extends Component {
             <ul id="superheroInfo" className="superhero-list">
               {this.renderPublicLists()}
             </ul>
+
+            <h2>Want to add review?</h2>
+            <ul className="review-bar">
+                     
+                      <li>
+                          <a class="left">List Name</a>
+                          <input type="text" class="search-input" placeholder="List name" id="review-list"></input>
+                      </li>
+                      <li>
+                          <a>Rating</a>
+                          <input type="text" class="search-input" placeholder="Rating 1-10" id="review-rating"></input> 
+                      </li>
+                      <li>
+                          <a>Comment</a>
+                          <input type="text" class="search-input" placeholder="Comment" id="review-comment"></input>     
+                      </li>
+                      <li>
+                          <a>Visibility</a>
+                          <input type="text" class="search-input" placeholder="Private or Public" id="review-visibility"></input>
+                      </li>
+                      <button id="searchPower" onClick={this.handleReview}>Add</button>
+
+                  </ul>
+
           </div>
           
         )}
@@ -533,13 +644,34 @@ class Unauthorized extends Component {
                     
                 </li>
                 <button id="modify-list" onClick = {this.handleModifyList}>Modify</button>
-                <button id="delete-list">Delete List</button>
+                <button id="delete-list" onClick = {this.handleDeleteList}>Delete List</button>
             </ul>   
             <h3>Your Lists</h3>
             <ul id="superheroInfo" className="superhero-list">
               {this.renderUserLists()}
             </ul>
         </div>
+        )}
+
+
+        {this.props.adminClicked && (
+          <div>
+              <h2> Admin Page</h2>
+              <h3>Grant Privileges or Disable</h3>
+              <ul className="review-bar">
+                <li>
+                  <a>User you are modifying</a>
+                  <input placeholder="Enter Email"></input>
+                  <button>Grant</button>
+                  <button>Disable</button>
+                </li>
+              </ul>
+              
+              
+          </div>
+            
+
+            
         )}
 
 

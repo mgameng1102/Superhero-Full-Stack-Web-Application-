@@ -1,10 +1,10 @@
-.search-bar ul li{
+.search-bar ul li, .review-bar li{
     display: inline-block; 
     list-style: none;
    
 }
 
-.search-bar ul li a{
+.search-bar ul li a, .review-bar li a{
     margin-right: 10px;
     margin-left: 20px;
 }
