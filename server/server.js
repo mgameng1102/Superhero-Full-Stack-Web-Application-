@@ -309,7 +309,81 @@ userRouter.post('/create/:email/:username/:password/:nickname', async (req, res)
 
         }
   });
-
+  app.post('/disable-user/:userEmail', async (req, res) => {
+    const { userEmail } = req.params;
+    const token = req.headers.authorization;
+    console.log('Received token:', token);
+  
+    try {
+      const decoded = jwt.verify(token, 'secretjwt');
+      console.log('Decoded token:', decoded);
+  
+      const { email } = decoded;
+      console.log(email)
+  
+      console.log(userEmail)
+      // Check if the user is an admin with the username "add admin"
+      if (email === 'admin@gmail.com') {
+        // Update the user specified by the email to be disabled
+        const updatedUser = await User.findOneAndUpdate(
+          { email: userEmail },
+          { $set: { disabled: true } },
+          { new: true }
+        );
+  
+        if (!updatedUser) {
+          return res.status(404).json({ message: `User with email ${userEmail} not found.` });
+        }
+  
+        console.log(`User with email ${email} has been disabled by admin.`);
+        res.status(200).json({ message: `User with email ${userEmail} has been disabled by admin.` });
+      } else {
+        // If the user is not an admin, return unauthorized
+        res.status(401).json({ message: 'Unauthorized: Only admin users can disable accounts.' });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  });
+  app.post('/enable-user/:userEmail', async (req, res) => {
+    const { userEmail } = req.params;
+    const token = req.headers.authorization;
+    console.log('Received token:', token);
+  
+    try {
+      const decoded = jwt.verify(token, 'secretjwt');
+      console.log('Decoded token:', decoded);
+  
+      const { email } = decoded;
+      console.log(email)
+  
+      console.log(userEmail)
+      // Check if the user is an admin with the username "add admin"
+      if (email === 'admin@gmail.com') {
+        // Update the user specified by the email to be disabled
+        const updatedUser = await User.findOneAndUpdate(
+          { email: userEmail },
+          { $set: { disabled: false } },
+          { new: true }
+        );
+  
+        if (!updatedUser) {
+          return res.status(404).json({ message: `User with email ${userEmail} not found.` });
+        }
+  
+        console.log(`User with email ${email} has been enabled by admin.`);
+        res.status(200).json({ message: `User with email ${userEmail} has been enabled by admin.` });
+      } else {
+        // If the user is not an admin, return unauthorized
+        res.status(401).json({ message: 'Unauthorized: Only admin users can enable accounts.' });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  });
+  
   
   
 userRouter.post('/add-list', authenticateToken, async (req, res) => {
