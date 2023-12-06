@@ -823,43 +823,66 @@ app.get('/search', (req, res) => {
   const { name, race, publisher, power } = req.query;
   let results = superheroInfo;
 
-  // Helper function for soft-matching
-  const softMatch = (value, query) => {
-      return value.toLowerCase().replace(/\s/g, '').startsWith(query.toLowerCase().replace(/\s/g, ''));
+  // Function to remove white spaces from a string
+  const removeWhiteSpace = str => str.replace(/\s/g, '');
+
+  // Function to compare two strings with a tolerance of up to two characters difference
+  const softMatch = (str1, str2) => {
+    if (str1 === str2 || str1.startsWith(str2)) {
+      return true;
+    }
+
+    if (str2.length > 3) {
+      const minLength = str2.length;
+      let diffCount = 0;
+
+      for (let i = 0; i < minLength; i++) {
+        if (str1[i] !== str2[i]) {
+          diffCount++;
+          if (diffCount > 2 || str1.length < 2) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    }
+
+    return false;
   };
 
   // Apply soft-matching to each field
   if (name) {
-      results = results.filter(hero => softMatch(hero.name, name));
+    results = results.filter(hero => softMatch(hero.name, name));
   }
   if (race) {
-      results = results.filter(hero => softMatch(hero.Race, race));
+    results = results.filter(hero => softMatch(hero.Race, race));
   }
   if (publisher) {
-      results = results.filter(hero => softMatch(hero.Publisher, publisher));
+    results = results.filter(hero => softMatch(hero.Publisher, publisher));
   }
 
   if (power) {
-      results = results.filter(hero => {
-          if (hero.Powers && hero.Powers.length > 0) {
-              const lowercasePower = power.toLowerCase().replace(/\s/g, '');
-              return hero.Powers.some(p => softMatch(p, lowercasePower));
-          }
-          return false;
-      });
+    results = results.filter(hero => {
+      if (hero.Powers && hero.Powers.length > 0) {
+        const lowercasePower = power.toLowerCase().replace(/\s/g, '');
+        return hero.Powers.some(p => softMatch(p, lowercasePower));
+      }
+      return false;
+    });
   }
 
   // Ensure that all conditions are satisfied using soft matching
   results = results.filter(hero =>
-      (!name || softMatch(hero.name, name)) &&
-      (!race || softMatch(hero.Race, race)) &&
-      (!publisher || softMatch(hero.Publisher, publisher)) &&
-      (!power || (hero.Powers && hero.Powers.some(p => softMatch(p, power))))
+    (!name || softMatch(hero.name, name)) &&
+    (!race || softMatch(hero.Race, race)) &&
+    (!publisher || softMatch(hero.Publisher, publisher)) &&
+    (!power || (hero.Powers && hero.Powers.some(p => softMatch(p, power))))
   );
 
-  res.json(results)
-
+  res.json(results);
 });
+
 
 
 app.listen(8000, () => {
