@@ -857,7 +857,8 @@ app.get('/search', (req, res) => {
       (!power || (hero.Powers && hero.Powers.some(p => softMatch(p, power))))
   );
 
-  res.json({ message: 'Search Successful'});
+  res.json(results)
+
 });
 
 

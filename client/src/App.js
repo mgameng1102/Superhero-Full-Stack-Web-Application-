@@ -187,8 +187,6 @@ class Unauthorized extends Component {
       .then(response => {
         // Check if response and response.data are defined
         if (response && response.data) {
-          alert(response.data.message)
-
           // Update the state with the search results
           this.setState({ searchResults: response.data });
         } else {
@@ -698,7 +696,7 @@ class Unauthorized extends Component {
 
         {this.props.aboutClicked && (
           <div className="about">
-            <h1>Mark's SuperHero Site</h1>
+            <h1>SuperHero Website</h1>
             <p>Organize all of the information about all of your favourite superheros!</p>
           </div>
         )}
