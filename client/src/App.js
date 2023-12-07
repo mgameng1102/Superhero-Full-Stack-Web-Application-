@@ -183,7 +183,7 @@ class Unauthorized extends Component {
   
   
     // Call your server's search route here
-    axios.get(`http://localhost:8000/search?name=${name}&race=${race}&publisher=${publisher}&power=${power}`)
+    axios.get(`/search?name=${name}&race=${race}&publisher=${publisher}&power=${power}`)
       .then(response => {
         // Check if response and response.data are defined
         if (response && response.data) {
