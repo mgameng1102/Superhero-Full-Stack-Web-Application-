@@ -205,7 +205,7 @@ class Unauthorized extends Component {
       e.preventDefault(); // Prevent the default behavior of the anchor tag
     }
     // Call your server's route to fetch user information
-    axios.get("http://localhost:8000/user-info", {
+    axios.get("/user-info", {
         headers: {
           Authorization: `${this.props.userToken}` // Include the user token in the request headers
         }
@@ -236,7 +236,7 @@ class Unauthorized extends Component {
     }
     
     // Call your server's route to fetch public lists
-    axios.get("http://localhost:8000/public-lists")
+    axios.get("/public-lists")
       .then(response => {
         console.log("Response data:", response.data); // Add this line for debugging
         if (response && response.data && response.data.publicLists) {
@@ -261,7 +261,7 @@ class Unauthorized extends Component {
     }
     
     // Call your server's route to fetch public lists
-    axios.get("http://localhost:8000/view-lists",{
+    axios.get("/view-lists",{
       headers: {
         Authorization: `${this.props.userToken}` // Include the user token in the request headers
       }
@@ -300,7 +300,7 @@ class Unauthorized extends Component {
     console.log("User Token", this.props.userToken);
   
     // Make a POST request to your server's add-list route
-    axios.post("http://localhost:8000/api/users/add-list/",{
+    axios.post("/api/users/add-list/",{
         listName: listName,
         description: description,
         visibility: visibility,
@@ -344,7 +344,7 @@ class Unauthorized extends Component {
     console.log("User Token", this.props.userToken);
   
     // Make a POST request to your server's add-list route
-    axios.post("http://localhost:8000/add-review",{
+    axios.post("/add-review",{
         listName: listName,
         rating: rating,
         comment: comment,
@@ -392,7 +392,7 @@ class Unauthorized extends Component {
     console.log("User Token", this.props.userToken);
   
     // Make a POST request to your server's add-list route
-    axios.post(`http://localhost:8000/edit-list/${listName}`,{
+    axios.post(`/edit-list/${listName}`,{
         newListName: newListName,
         newDescription: newDescription,
         newVisibility: newVisibility,
@@ -431,7 +431,7 @@ class Unauthorized extends Component {
     console.log("User Token", this.props.userToken);
   
     // Make a POST request to your server's add-list route
-    axios.post(`http://localhost:8000/grant-privileges/${email}`, null, {
+    axios.post(`/grant-privileges/${email}`, null, {
       headers: {
           Authorization: `${this.props.userToken}`
       }
@@ -460,7 +460,7 @@ class Unauthorized extends Component {
     console.log("User Token", this.props.userToken);
   
     // Make a POST request to your server's add-list route
-    axios.post(`http://localhost:8000/disable-user/${email}`, null, {
+    axios.post(`/disable-user/${email}`, null, {
       headers: {
           Authorization: `${this.props.userToken}`
       }
@@ -490,7 +490,7 @@ class Unauthorized extends Component {
     console.log("User Token", this.props.userToken);
   
     // Make a POST request to your server's add-list route
-    axios.post(`http://localhost:8000/enable-user/${email}`, null, {
+    axios.post(`/enable-user/${email}`, null, {
       headers: {
           Authorization: `${this.props.userToken}`
       }
@@ -525,7 +525,7 @@ class Unauthorized extends Component {
     console.log("User Token", this.props.userToken);
   
     // Make a POST request to your server's add-list route
-    axios.post(`http://localhost:8000/delete-list/${listName}`, null, {
+    axios.post(`/delete-list/${listName}`, null, {
       headers: {
           Authorization: `${this.props.userToken}`
       }

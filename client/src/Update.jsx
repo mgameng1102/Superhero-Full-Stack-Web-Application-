@@ -20,7 +20,7 @@ export const Update = (props) => {
           console.log(newPassword)
           console.log(confPassword)
         // Call your server's create route here
-        axios.post(`http://localhost:8000/api/users/updatePass/${email}/${newPassword}/${confPassword}`)
+        axios.post(`/api/users/updatePass/${email}/${newPassword}/${confPassword}`)
             .then(response => {
                 
                 setErrorMessage(response.data.message);

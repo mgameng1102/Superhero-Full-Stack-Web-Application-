@@ -10,7 +10,7 @@ export const Login = (props) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    axios.post("http://localhost:8000/login/password", {
+    axios.post("/login/password", {
       email: email,
       password: password,
     })

@@ -10,6 +10,8 @@ const superheroPowers = require('./superhero_powers.json');
 const jwt = require('jsonwebtoken');
 const { check, validationResult } = require('express-validator');
 
+const path = require('path');
+
 
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
@@ -884,6 +886,13 @@ app.get('/search', (req, res) => {
 });
 
 
+// Serving static files from the client directory
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// All other GET requests not handled before will return the React app
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+});
 
 app.listen(8000, () => {
   console.log(`Server is running on port 8000.`);
